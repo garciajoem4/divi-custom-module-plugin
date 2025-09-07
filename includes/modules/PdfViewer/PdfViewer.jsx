@@ -16,6 +16,8 @@ class PdfViewer extends Component {
       display_mode,
       viewer_height,
       enable_toolbar,
+      enable_navigation,
+      enable_scrollbar,
       show_download_button,
       download_button_text,
       open_in_new_tab
@@ -30,8 +32,23 @@ class PdfViewer extends Component {
       );
     }
 
-    // Build toolbar parameter
-    const toolbarParam = enable_toolbar === 'on' ? '' : '#toolbar=0';
+    // Build PDF parameters
+    const pdfParams = [];
+    if (enable_toolbar === 'off') {
+      pdfParams.push('toolbar=0');
+    }
+    if (enable_navigation === 'off') {
+      pdfParams.push('navpanes=0');
+    } else {
+      pdfParams.push('navpanes=1');
+    }
+    if (enable_scrollbar === 'off') {
+      pdfParams.push('scrollbar=0');
+    } else {
+      pdfParams.push('scrollbar=1');
+    }
+
+    const pdfUrlWithParams = pdf_file + (pdfParams.length > 0 ? '#' + pdfParams.join('&') : '');
     const height = viewer_height || '600px';
     const target = open_in_new_tab === 'on' ? '_blank' : '_self';
     const buttonText = download_button_text || 'Download PDF';
@@ -51,29 +68,38 @@ class PdfViewer extends Component {
         
         {display_mode !== 'download' && (
           <div className="dicm-pdf-viewer" style={{ height: height }}>
-            <object
-              data={`${pdf_file}${toolbarParam}`}
-              type="application/pdf"
+            <iframe
+              src={pdfUrlWithParams}
               width="100%"
               height="100%"
+              frameBorder="0"
+              allowFullScreen
+              title="PDF Viewer"
             >
-              <embed
-                src={`${pdf_file}${toolbarParam}`}
+              <object
+                data={pdfUrlWithParams}
                 type="application/pdf"
                 width="100%"
                 height="100%"
-              />
-              <p>
-                Your browser does not support PDFs.{' '}
-                <a 
-                  href={pdf_file} 
-                  target={target}
-                  rel={open_in_new_tab === 'on' ? 'noopener noreferrer' : ''}
-                >
-                  Download the PDF
-                </a>.
-              </p>
-            </object>
+              >
+                <embed
+                  src={pdfUrlWithParams}
+                  type="application/pdf"
+                  width="100%"
+                  height="100%"
+                />
+                <p>
+                  Your browser does not support PDFs.{' '}
+                  <a 
+                    href={pdf_file} 
+                    target={target}
+                    rel={open_in_new_tab === 'on' ? 'noopener noreferrer' : ''}
+                  >
+                    Download the PDF
+                  </a>.
+                </p>
+              </object>
+            </iframe>
           </div>
         )}
         

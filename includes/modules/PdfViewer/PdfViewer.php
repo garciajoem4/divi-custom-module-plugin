@@ -15,6 +15,9 @@ class DICM_PdfViewer extends ET_Builder_Module {
 		$this->name = esc_html__( 'PDF Viewer', 'dicm-divi-custom-modules' );
 		$this->icon_path = plugin_dir_path( __FILE__ ) . 'icon.svg';
 		
+		// Enqueue frontend script
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
+		
 		// Enable advanced fields
 		$this->advanced_fields = array(
 			'borders'               => array(
@@ -58,6 +61,19 @@ class DICM_PdfViewer extends ET_Builder_Module {
 					'main' => "%%order_class%%",
 				),
 			),
+		);
+	}
+
+	/**
+	 * Enqueue frontend scripts for PDF viewer functionality
+	 */
+	public function enqueue_frontend_scripts() {
+		wp_enqueue_script(
+			'dicm-pdf-viewer-frontend',
+			plugin_dir_url( __FILE__ ) . 'frontend.js',
+			array( 'jquery' ),
+			'1.0.0',
+			true
 		);
 	}
 
@@ -127,7 +143,37 @@ class DICM_PdfViewer extends ET_Builder_Module {
 					'off' => esc_html__( 'No', 'dicm-divi-custom-modules' ),
 				),
 				'default'         => 'on',
-				'description'     => esc_html__( 'Show or hide the PDF toolbar.', 'dicm-divi-custom-modules' ),
+				'description'     => esc_html__( 'Show or hide the PDF toolbar with navigation controls.', 'dicm-divi-custom-modules' ),
+				'toggle_slug'     => 'display_settings',
+				'show_if'         => array(
+					'display_mode' => array( 'embed', 'both' ),
+				),
+			),
+			'enable_navigation' => array(
+				'label'           => esc_html__( 'Show Navigation Pane', 'dicm-divi-custom-modules' ),
+				'type'            => 'yes_no_button',
+				'option_category' => 'configuration',
+				'options'         => array(
+					'on'  => esc_html__( 'Yes', 'dicm-divi-custom-modules' ),
+					'off' => esc_html__( 'No', 'dicm-divi-custom-modules' ),
+				),
+				'default'         => 'on',
+				'description'     => esc_html__( 'Show or hide the navigation pane for multi-page PDFs.', 'dicm-divi-custom-modules' ),
+				'toggle_slug'     => 'display_settings',
+				'show_if'         => array(
+					'display_mode' => array( 'embed', 'both' ),
+				),
+			),
+			'enable_scrollbar' => array(
+				'label'           => esc_html__( 'Show Scrollbar', 'dicm-divi-custom-modules' ),
+				'type'            => 'yes_no_button',
+				'option_category' => 'configuration',
+				'options'         => array(
+					'on'  => esc_html__( 'Yes', 'dicm-divi-custom-modules' ),
+					'off' => esc_html__( 'No', 'dicm-divi-custom-modules' ),
+				),
+				'default'         => 'on',
+				'description'     => esc_html__( 'Show or hide the scrollbar for PDF navigation.', 'dicm-divi-custom-modules' ),
 				'toggle_slug'     => 'display_settings',
 				'show_if'         => array(
 					'display_mode' => array( 'embed', 'both' ),
@@ -201,6 +247,8 @@ class DICM_PdfViewer extends ET_Builder_Module {
 		$display_mode         = $this->props['display_mode'];
 		$viewer_height        = $this->props['viewer_height'];
 		$enable_toolbar       = $this->props['enable_toolbar'];
+		$enable_navigation    = $this->props['enable_navigation'];
+		$enable_scrollbar     = $this->props['enable_scrollbar'];
 		$show_download_button = $this->props['show_download_button'];
 		$download_button_text = $this->props['download_button_text'];
 		$open_in_new_tab      = $this->props['open_in_new_tab'];
@@ -228,29 +276,50 @@ class DICM_PdfViewer extends ET_Builder_Module {
 
 		// Handle different display modes
 		if ( 'download' !== $display_mode ) {
-			// Embed viewer
-			$toolbar_param = ( 'on' === $enable_toolbar ) ? '' : '#toolbar=0';
+			// Embed viewer using iframe with better PDF support
 			$height = ! empty( $viewer_height ) ? $viewer_height : '600px';
 			
 			// Generate unique ID for this module instance
 			$module_id = sprintf( 'dicm-pdf-%s', uniqid() );
+			
+			// Build PDF parameters
+			$pdf_params = array();
+			if ( 'off' === $enable_toolbar ) {
+				$pdf_params[] = 'toolbar=0';
+			}
+			if ( 'off' === $enable_navigation ) {
+				$pdf_params[] = 'navpanes=0';
+			} else {
+				$pdf_params[] = 'navpanes=1';
+			}
+			if ( 'off' === $enable_scrollbar ) {
+				$pdf_params[] = 'scrollbar=0';
+			} else {
+				$pdf_params[] = 'scrollbar=1';
+			}
+			
+			$pdf_url_with_params = esc_url( $pdf_file );
+			if ( ! empty( $pdf_params ) ) {
+				$pdf_url_with_params .= '#' . implode( '&', $pdf_params );
+			}
 			
 			$output .= sprintf(
 				'<div class="dicm-pdf-viewer" style="height: %s;">',
 				esc_attr( $height )
 			);
 			
-			// Use object tag with embed fallback for better browser support
+			// Use iframe for better PDF support with fallback
 			$output .= sprintf(
-				'<object id="%s" data="%s%s" type="application/pdf" width="100%%" height="100%%">
-					<embed src="%s%s" type="application/pdf" width="100%%" height="100%%" />
-					<p>Your browser does not support PDFs. <a href="%s" %s>Download the PDF</a>.</p>
-				</object>',
+				'<iframe id="%s" src="%s" width="100%%" height="100%%" frameborder="0" allowfullscreen title="PDF Viewer">
+					<object data="%s" type="application/pdf" width="100%%" height="100%%">
+						<embed src="%s" type="application/pdf" width="100%%" height="100%%" />
+						<p>Your browser does not support PDFs. <a href="%s" %s>Download the PDF</a>.</p>
+					</object>
+				</iframe>',
 				esc_attr( $module_id ),
-				esc_url( $pdf_file ),
-				esc_attr( $toolbar_param ),
-				esc_url( $pdf_file ),
-				esc_attr( $toolbar_param ),
+				esc_url( $pdf_url_with_params ),
+				esc_url( $pdf_url_with_params ),
+				esc_url( $pdf_url_with_params ),
 				esc_url( $pdf_file ),
 				( 'on' === $open_in_new_tab ) ? 'target="_blank" rel="noopener"' : ''
 			);
