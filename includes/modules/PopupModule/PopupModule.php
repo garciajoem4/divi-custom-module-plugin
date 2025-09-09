@@ -337,14 +337,14 @@ class DICM_PopupModule extends ET_Builder_Module {
 		// Generate unique popup ID
 		$popup_id = 'dicm-popup-' . uniqid();
 
-		// Enqueue frontend script
-		wp_enqueue_script(
-			'dicm-popup-frontend',
-			plugin_dir_url( __FILE__ ) . 'frontend.js',
-			array( 'jquery' ),
-			'1.0.0',
-			true
-		);
+		        // Enqueue frontend script with jQuery Deferred support
+        wp_enqueue_script(
+            'dicm-popup-frontend',
+            plugin_dir_url(__FILE__) . 'frontend-deferred.js',
+            array('jquery'),
+            '1.0.1',
+            true
+        );
 
 		// Prepare popup configuration
 		$popup_config = array(

@@ -1,22 +1,86 @@
 jQuery(document).ready(function($) {
     'use strict';
 
-    // Initialize popup system
+    // Initialize popup system with jQuery Deferred support
     const PopupManager = {
         activePopups: new Set(),
         scrollPosition: 0,
         exitIntentTriggered: false,
+        animationQueue: {},
+        deferredOperations: {},
         
         init: function() {
+            this.setupDeferredHelpers();
             this.bindEvents();
             this.initializePopups();
         },
         
+        // Setup jQuery Deferred helper methods
+        setupDeferredHelpers: function() {
+            const self = this;
+            
+            // Create animation promise helpers
+            $.fn.animateWithDeferred = function(properties, duration, easing) {
+                const deferred = $.Deferred();
+                const $this = this;
+                
+                $this.animate(properties, {
+                    duration: duration || 400,
+                    easing: easing || 'swing',
+                    complete: function() {
+                        deferred.resolve($this);
+                    },
+                    fail: function() {
+                        deferred.reject($this);
+                    }
+                });
+                
+                return deferred.promise();
+            };
+            
+            // CSS transition promise helper
+            $.fn.transitionWithDeferred = function(className, duration) {
+                const deferred = $.Deferred();
+                const $this = this;
+                const transitionDuration = duration || 300;
+                
+                $this.addClass(className);
+                
+                setTimeout(() => {
+                    deferred.resolve($this);
+                }, transitionDuration);
+                
+                return deferred.promise();
+            };
+            
+            // Popup-specific deferred operations
+            this.deferredOperations = {
+                opening: {},
+                closing: {},
+                animations: {}
+            };
+        },
+        
+        // Create a deferred popup opening operation
+        createOpenDeferred: function(popupId) {
+            if (!this.deferredOperations.opening[popupId]) {
+                this.deferredOperations.opening[popupId] = $.Deferred();
+            }
+            return this.deferredOperations.opening[popupId];
+        },
+        
+        // Create a deferred popup closing operation
+        createCloseDeferred: function(popupId) {
+            if (!this.deferredOperations.closing[popupId]) {
+                this.deferredOperations.closing[popupId] = $.Deferred();
+            }
+            return this.deferredOperations.closing[popupId];
+        },
+        },
+        
         bindEvents: function() {
             // Button trigger events
-            $(document).on('click', '.dicm-popup-trigger', this.handleButtonTrigger.bind(this));
-            
-            // Close button events
+            $(document).on('click', '.dicm-popup-trigger', this.handleButtonTrigger.bind(this));            // Close button events
             $(document).on('click', '.dicm-popup-close', this.handleCloseButton.bind(this));
             
             // Overlay click events
@@ -203,10 +267,14 @@ jQuery(document).ready(function($) {
             $('#' + popupId).data('auto-close-delay', delay);
         },
         
+        // Enhanced popup opening with jQuery Deferred
         openPopup: function(popupId) {
             const $popup = $('#' + popupId);
-            if (!$popup.length || this.activePopups.has(popupId)) return;
+            if (!$popup.length || this.activePopups.has(popupId)) {
+                return $.Deferred().reject().promise();
+            }
             
+            const deferred = this.createOpenDeferred(popupId);
             const config = $popup.data('config');
             
             // Store scroll position if scroll prevention is enabled
@@ -218,57 +286,153 @@ jQuery(document).ready(function($) {
             // Add to active popups
             this.activePopups.add(popupId);
             
-            // Show popup with animation
-            $popup.show().addClass('active');
+            // Chain animations using jQuery Deferred
+            $popup.show()
+                .css({ opacity: 0, transform: 'scale(0.8)' })
+                .transitionWithDeferred('active', 50)
+                .then(() => {
+                    return $popup.animateWithDeferred({ 
+                        opacity: 1,
+                        transform: 'scale(1)'
+                    }, 300, 'easeOutBack');
+                })
+                .then(() => {
+                    // Focus management
+                    this.manageFocus($popup, 'open');
+                    
+                    // Setup auto-close if configured
+                    const autoCloseDelay = $popup.data('auto-close-delay');
+                    if (autoCloseDelay > 0) {
+                        setTimeout(() => {
+                            this.closePopup(popupId);
+                        }, autoCloseDelay * 1000);
+                    }
+                    
+                    // Trigger custom event
+                    $(document).trigger('dicm_popup_opened', [popupId, $popup]);
+                    
+                    // Analytics tracking
+                    this.trackPopupEvent('opened', popupId);
+                    
+                    // Resolve the deferred
+                    deferred.resolve($popup);
+                })
+                .catch(() => {
+                    // Handle animation failure
+                    this.activePopups.delete(popupId);
+                    $popup.hide();
+                    deferred.reject();
+                });
             
-            // Focus management
-            this.manageFocus($popup, 'open');
-            
-            // Setup auto-close if configured
-            const autoCloseDelay = $popup.data('auto-close-delay');
-            if (autoCloseDelay > 0) {
-                setTimeout(() => {
-                    this.closePopup(popupId);
-                }, autoCloseDelay * 1000);
-            }
-            
-            // Trigger custom event
-            $(document).trigger('dicm_popup_opened', [popupId, $popup]);
-            
-            // Analytics tracking
-            this.trackPopupEvent('opened', popupId);
+            return deferred.promise();
         },
         
+        // Enhanced popup closing with jQuery Deferred
         closePopup: function(popupId) {
             const $popup = $('#' + popupId);
-            if (!$popup.length || !this.activePopups.has(popupId)) return;
+            if (!$popup.length || !this.activePopups.has(popupId)) {
+                return $.Deferred().reject().promise();
+            }
             
+            const deferred = this.createCloseDeferred(popupId);
             const config = $popup.data('config');
             
             // Remove from active popups
             this.activePopups.delete(popupId);
             
-            // Hide popup with animation
-            $popup.removeClass('active');
+            // Chain close animations using jQuery Deferred
+            $popup.animateWithDeferred({ 
+                opacity: 0,
+                transform: 'scale(0.8)'
+            }, 200, 'easeInBack')
+                .then(() => {
+                    $popup.removeClass('active');
+                    return $.when($popup.fadeOut(100));
+                })
+                .then(() => {
+                    // Restore scroll if this was the last popup and scroll prevention is enabled
+                    if (this.activePopups.size === 0 && config && config.prevent_scroll) {
+                        $('body').removeClass('dicm-popup-open').css('top', '');
+                        $(window).scrollTop(this.scrollPosition);
+                    }
+                    
+                    // Focus management
+                    this.manageFocus($popup, 'close');
+                    
+                    // Trigger custom event
+                    $(document).trigger('dicm_popup_closed', [popupId, $popup]);
+                    
+                    // Analytics tracking
+                    this.trackPopupEvent('closed', popupId);
+                    
+                    // Resolve the deferred
+                    deferred.resolve($popup);
+                    
+                    // Clean up deferred operations
+                    delete this.deferredOperations.opening[popupId];
+                    delete this.deferredOperations.closing[popupId];
+                })
+                .catch(() => {
+                    deferred.reject();
+                });
             
-            setTimeout(() => {
-                $popup.hide();
-            }, 300); // Match CSS transition duration
+            return deferred.promise();
+        },
+        
+        // Enhanced method to open popup with promise support
+        openPopupWithPromise: function(popupId) {
+            return this.openPopup(popupId);
+        },
+        
+        // Enhanced method to close popup with promise support
+        closePopupWithPromise: function(popupId) {
+            return this.closePopup(popupId);
+        },
+        
+        // Method to chain multiple popup operations
+        chainPopupOperations: function(operations) {
+            let chain = $.Deferred().resolve();
             
-            // Restore scroll if this was the last popup and scroll prevention is enabled
-            if (this.activePopups.size === 0 && config && config.prevent_scroll) {
-                $('body').removeClass('dicm-popup-open').css('top', '');
-                $(window).scrollTop(this.scrollPosition);
+            operations.forEach(operation => {
+                chain = chain.then(() => {
+                    switch(operation.type) {
+                        case 'open':
+                            return this.openPopup(operation.popupId);
+                        case 'close':
+                            return this.closePopup(operation.popupId);
+                        case 'delay':
+                            const deferred = $.Deferred();
+                            setTimeout(() => deferred.resolve(), operation.duration || 1000);
+                            return deferred.promise();
+                        default:
+                            return $.Deferred().resolve().promise();
+                    }
+                });
+            });
+            
+            return chain;
+        },
+        
+        // Method to open popup with conditional logic
+        openPopupConditional: function(popupId, condition) {
+            const deferred = $.Deferred();
+            
+            if (typeof condition === 'function') {
+                const result = condition();
+                if (result === true || (result && typeof result.then === 'function')) {
+                    $.when(result).then(() => {
+                        this.openPopup(popupId).then(deferred.resolve, deferred.reject);
+                    }).catch(deferred.reject);
+                } else {
+                    deferred.reject('Condition not met');
+                }
+            } else if (condition) {
+                this.openPopup(popupId).then(deferred.resolve, deferred.reject);
+            } else {
+                deferred.reject('Condition not met');
             }
             
-            // Focus management
-            this.manageFocus($popup, 'close');
-            
-            // Trigger custom event
-            $(document).trigger('dicm_popup_closed', [popupId, $popup]);
-            
-            // Analytics tracking
-            this.trackPopupEvent('closed', popupId);
+            return deferred.promise();
         },
         
         manageFocus: function($popup, action) {
