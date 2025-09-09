@@ -11,6 +11,7 @@ jQuery(document).ready(function($) {
         init: function() {
             this.setupDeferredHelpers();
             this.bindEvents();
+            this.integrateContentBlocks();
             this.initializePopups();
         },
         
@@ -39,6 +40,180 @@ jQuery(document).ready(function($) {
                 
                 return deferred.promise();
             };
+        },
+        
+        // Integrate content blocks into popups based on configuration
+        integrateContentBlocks: function() {
+            const self = this;
+            
+            // Process each popup and check for content element ID configuration
+            $('.dicm-popup-overlay').each(function() {
+                const $popup = $(this);
+                const popupId = $popup.attr('id');
+                const config = self.getPopupConfig(popupId);
+                
+                if (config && config.content_element_id) {
+                    // Look for the specific element ID
+                    const $targetElement = $('#' + config.content_element_id);
+                    
+                    if ($targetElement.length) {
+                        self.integrateContentIntoPopup($targetElement, popupId);
+                    } else {
+                        // Show fallback content if target element not found
+                        self.showFallbackContent($popup, config.content_fallback);
+                    }
+                }
+            });
+            
+            // Also handle legacy content integration for backward compatibility
+            const contentElements = $('[id="popupModuleContent"], .popupModuleContent, [data-popup-content]');
+            
+            if (contentElements.length === 0) return;
+            
+            contentElements.each(function(index, element) {
+                const $contentElement = $(element);
+                const targetPopupId = $contentElement.data('popup-target') || 
+                                    $contentElement.data('popup-id') ||
+                                    self.getFirstAvailablePopup();
+                
+                if (!targetPopupId) {
+                    console.warn('No popup target found for content element:', element);
+                    return;
+                }
+                
+                self.integrateContentIntoPopup($contentElement, targetPopupId);
+            });
+        },
+        
+        // Get the first available popup ID
+        getFirstAvailablePopup: function() {
+            const $firstPopup = $('.dicm-popup-overlay').first();
+            return $firstPopup.length ? $firstPopup.attr('id') : null;
+        },
+        
+        // Integrate specific content into a specific popup
+        integrateContentIntoPopup: function($contentElement, popupId) {
+            const $popup = $('#' + popupId);
+            const $popupInner = $popup.find('.dicm-popup-inner');
+            
+            if (!$popup.length || !$popupInner.length) {
+                console.warn('Popup not found:', popupId);
+                return;
+            }
+            
+            // Clone the content element to preserve the original
+            const $clonedContent = $contentElement.clone(true, true);
+            
+            // Hide the original content element
+            $contentElement.css({
+                'position': 'absolute',
+                'left': '-9999px',
+                'visibility': 'hidden',
+                'height': '0',
+                'overflow': 'hidden'
+            }).attr('aria-hidden', 'true');
+            
+            // Clear any existing placeholder content
+            $popupInner.find('.dicm-popup-content-placeholder').remove();
+            
+            // Add the cloned content to the popup
+            $popupInner.append($clonedContent);
+            
+            // Ensure the cloned content is visible and properly styled
+            $clonedContent.css({
+                'position': 'static',
+                'left': 'auto',
+                'visibility': 'visible',
+                'height': 'auto',
+                'overflow': 'visible'
+            }).removeAttr('aria-hidden');
+            
+            // Handle forms specifically
+            this.handleFormIntegration($clonedContent, $contentElement);
+            
+            // Trigger custom event
+            $(document).trigger('dicm_popup_content_integrated', [popupId, $clonedContent, $contentElement]);
+            
+            console.log('Content integrated into popup:', popupId);
+        },
+        
+        // Handle form integration with proper event binding
+        handleFormIntegration: function($clonedContent, $originalContent) {
+            const $forms = $clonedContent.find('form');
+            
+            if ($forms.length === 0) return;
+            
+            $forms.each(function(index, form) {
+                const $form = $(form);
+                const $originalForm = $originalContent.find('form').eq(index);
+                
+                // Copy form attributes and data
+                if ($originalForm.length) {
+                    const originalAttrs = $originalForm[0].attributes;
+                    for (let i = 0; i < originalAttrs.length; i++) {
+                        const attr = originalAttrs[i];
+                        if (attr.name !== 'id') { // Don't duplicate IDs
+                            $form.attr(attr.name, attr.value);
+                        }
+                    }
+                }
+                
+                // Ensure form validation works
+                $form.on('submit', function(e) {
+                    // Allow form to submit normally, but track the event
+                    $(document).trigger('dicm_popup_form_submit', [$(this), e]);
+                });
+                
+                // Handle AJAX forms (if they exist)
+                if ($form.hasClass('ajax-form') || $form.data('ajax')) {
+                    $form.on('submit', function(e) {
+                        e.preventDefault();
+                        // Handle AJAX submission here if needed
+                        $(document).trigger('dicm_popup_ajax_form_submit', [$(this), e]);
+                    });
+                }
+            });
+        },
+        
+        // Get popup configuration from localized data or data attribute
+        getPopupConfig: function(popupId) {
+            const $popup = $('#' + popupId);
+            if (!$popup.length) return null;
+            
+            // Try to get config from data attribute first
+            let config = $popup.data('config');
+            
+            // If not found, try to get from localized script data
+            if (!config && window.dicm_popup_config) {
+                const configKey = 'dicm_popup_config_' + popupId.replace(/-/g, '_');
+                config = window[configKey] || window.dicm_popup_config;
+            }
+            
+            return config || {};
+        },
+        
+        // Show fallback content when target element is not found
+        showFallbackContent: function($popup, fallbackContent) {
+            if (!fallbackContent) return;
+            
+            const $popupInner = $popup.find('.dicm-popup-inner');
+            const $dynamicContent = $popup.find('.dicm-popup-dynamic-content');
+            
+            if ($dynamicContent.length) {
+                // Hide loading indicator
+                $dynamicContent.find('.dicm-popup-loading').hide();
+                
+                // Show fallback content
+                const $fallbackDiv = $dynamicContent.find('.dicm-popup-fallback');
+                $fallbackDiv.html(fallbackContent).show();
+                
+                // Show the dynamic content container
+                $dynamicContent.show();
+            } else {
+                // Fallback: add content to popup inner
+                $popupInner.find('.dicm-popup-content-placeholder').remove();
+                $popupInner.append('<div class="dicm-popup-fallback-content">' + fallbackContent + '</div>');
+            }
         },
         
         bindEvents: function() {

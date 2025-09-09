@@ -11,6 +11,8 @@ class PopupModule extends Component {
   render() {
     const {
       popup_title,
+      content_element_id,
+      content_fallback,
       trigger_type,
       trigger_text,
       popup_animation,
@@ -70,11 +72,24 @@ class PopupModule extends Component {
                   <h3 className="dicm-popup-title">{popup_title}</h3>
                 )}
                 
-                <div className="dicm-popup-inner">
+                <div className="dicm-popup-inner dicm-popup-content-area">
                   {/* Content placeholder for nested modules */}
                   <div className="dicm-popup-content-placeholder">
                     <p>Add modules here by dragging them into this popup.</p>
                     <p><em>This preview shows how your popup will appear to visitors.</em></p>
+                    <hr style={{margin: '15px 0', borderColor: '#ddd'}} />
+                    <p><strong>Content Integration:</strong></p>
+                    {content_element_id ? (
+                      <div>
+                        <p><small>✅ Target Element ID: <code>#{content_element_id}</code></small></p>
+                        <p><small>Elements with this ID will be automatically moved into the popup when triggered.</small></p>
+                        {content_fallback && (
+                          <p><small>💾 Fallback content configured if element not found.</small></p>
+                        )}
+                      </div>
+                    ) : (
+                      <p><small>Set a "Content Element ID" to automatically integrate page elements into this popup.</small></p>
+                    )}
                   </div>
                   
                   {/* Render any children/content that might be passed */}

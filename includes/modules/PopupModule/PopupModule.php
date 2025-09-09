@@ -71,6 +71,20 @@ class DICM_PopupModule extends ET_Builder_Module {
 				'description'     => esc_html__( 'Optional title for the popup.', 'dicm-divi-custom-modules' ),
 				'toggle_slug'     => 'main_content',
 			),
+			'content_element_id' => array(
+				'label'           => esc_html__( 'Content Element ID', 'dicm-divi-custom-modules' ),
+				'type'            => 'text',
+				'option_category' => 'basic_option',
+				'description'     => esc_html__( 'ID of the page element to display in the popup (e.g., "my-form", "contact-info"). The element will be moved into the popup when triggered.', 'dicm-divi-custom-modules' ),
+				'toggle_slug'     => 'main_content',
+			),
+			'content_fallback' => array(
+				'label'           => esc_html__( 'Fallback Content', 'dicm-divi-custom-modules' ),
+				'type'            => 'tiny_mce',
+				'option_category' => 'basic_option',
+				'description'     => esc_html__( 'Content to display if the target element ID is not found on the page.', 'dicm-divi-custom-modules' ),
+				'toggle_slug'     => 'main_content',
+			),
 			'trigger_type' => array(
 				'label'           => esc_html__( 'Trigger Type', 'dicm-divi-custom-modules' ),
 				'type'            => 'select',
@@ -317,6 +331,8 @@ class DICM_PopupModule extends ET_Builder_Module {
 
 	public function render( $attrs, $content = null, $render_slug ) {
 		$popup_title        = $this->props['popup_title'];
+		$content_element_id = $this->props['content_element_id'];
+		$content_fallback   = $this->props['content_fallback'];
 		$trigger_type       = $this->props['trigger_type'];
 		$trigger_text       = $this->props['trigger_text'];
 		$delay_time         = $this->props['delay_time'];
@@ -348,15 +364,17 @@ class DICM_PopupModule extends ET_Builder_Module {
 
 		// Prepare popup configuration
 		$popup_config = array(
-			'trigger_type'      => $trigger_type,
-			'delay_time'        => intval( $delay_time ),
-			'scroll_percentage' => intval( $scroll_percentage ),
-			'animation'         => $popup_animation,
-			'position'          => $popup_position,
-			'close_on_overlay'  => $close_on_overlay === 'on',
-			'close_on_escape'   => $close_on_escape === 'on',
-			'prevent_scroll'    => $prevent_scroll === 'on',
-			'auto_close'        => intval( $auto_close ),
+			'trigger_type'       => $trigger_type,
+			'delay_time'         => intval( $delay_time ),
+			'scroll_percentage'  => intval( $scroll_percentage ),
+			'animation'          => $popup_animation,
+			'position'           => $popup_position,
+			'close_on_overlay'   => $close_on_overlay === 'on',
+			'close_on_escape'    => $close_on_escape === 'on',
+			'prevent_scroll'     => $prevent_scroll === 'on',
+			'auto_close'         => intval( $auto_close ),
+			'content_element_id' => sanitize_html_class( $content_element_id ),
+			'content_fallback'   => wp_kses_post( $content_fallback ),
 		);
 
 		// Localize script for this popup
@@ -419,9 +437,28 @@ class DICM_PopupModule extends ET_Builder_Module {
 			$output .= sprintf( '<h3 class="dicm-popup-title">%s</h3>', esc_html( $popup_title ) );
 		}
 
-		// Popup content (child modules)
-		$output .= '<div class="dicm-popup-inner">';
+		// Popup content (child modules or integrated content)
+		// Dynamic content integration: Frontend JavaScript will look for elements
+		// with the specified content_element_id and integrate them into the popup
+		$output .= '<div class="dicm-popup-inner dicm-popup-content-area">';
+		
+		// Show content element ID being targeted (if specified)
+		if ( ! empty( $content_element_id ) ) {
+			$output .= sprintf( 
+				'<div class="dicm-popup-dynamic-content" data-target-id="%s" style="display: none;">
+					<div class="dicm-popup-loading">Loading content...</div>
+					<div class="dicm-popup-fallback" style="display: none;">%s</div>
+				</div>', 
+				esc_attr( $content_element_id ),
+				wp_kses_post( $content_fallback )
+			);
+		}
+		
+		// Regular popup content (nested modules)
+		$output .= '<div class="dicm-popup-static-content">';
 		$output .= $content; // This will contain the nested modules
+		$output .= '</div>';
+		
 		$output .= '</div>';
 
 		$output .= '

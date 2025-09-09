@@ -12,6 +12,7 @@ jQuery(document).ready(function($) {
         init: function() {
             this.setupDeferredHelpers();
             this.bindEvents();
+            this.integrateContentBlocks();
             this.initializePopups();
         },
         
@@ -547,6 +548,88 @@ jQuery(document).ready(function($) {
         closeAllPopups: function() {
             this.activePopups.forEach(popupId => {
                 this.closePopup(popupId);
+            });
+        },
+
+        /**
+         * Integrate content blocks into popup modules
+         */
+        integrateContentBlocks: function() {
+            var self = this;
+            
+            // Find all elements that should be integrated into popups
+            var contentElements = $('[id="popupModuleContent"], [class*="popupModuleContent"], [data-popup-content]');
+            
+            if (contentElements.length > 0) {
+                console.log('Found ' + contentElements.length + ' content block(s) for popup integration');
+                
+                contentElements.each(function() {
+                    var contentElement = $(this);
+                    var targetPopup = self.getFirstAvailablePopup();
+                    
+                    if (targetPopup.length > 0) {
+                        self.integrateContentIntoPopup(contentElement, targetPopup);
+                    }
+                });
+            }
+        },
+
+        /**
+         * Get the first available popup module
+         */
+        getFirstAvailablePopup: function() {
+            return $('.dicm-popup-module').first();
+        },
+
+        /**
+         * Integrate content element into popup
+         */
+        integrateContentIntoPopup: function(contentElement, targetPopup) {
+            var self = this;
+            
+            try {
+                // Clone the content element
+                var clonedContent = contentElement.clone(true, true);
+                
+                // Find the popup content container
+                var contentContainer = targetPopup.find('.dicm-popup-content-area');
+                if (contentContainer.length === 0) {
+                    contentContainer = targetPopup.find('.dicm-popup-content');
+                }
+                
+                if (contentContainer.length > 0) {
+                    // Clear existing content and add new content
+                    contentContainer.empty().append(clonedContent);
+                    
+                    // Handle any forms in the cloned content
+                    self.handleFormIntegration(clonedContent);
+                    
+                    // Hide the original content element
+                    contentElement.hide();
+                    
+                    console.log('Successfully integrated content into popup');
+                } else {
+                    console.warn('Could not find popup content container');
+                }
+            } catch (error) {
+                console.error('Error integrating content into popup:', error);
+            }
+        },
+
+        /**
+         * Handle form integration in cloned content
+         */
+        handleFormIntegration: function(clonedContent) {
+            var forms = clonedContent.find('form');
+            
+            forms.each(function() {
+                var form = $(this);
+                
+                // Ensure form has proper event handling
+                form.off('submit.popupIntegration').on('submit.popupIntegration', function(e) {
+                    // Let the form submit naturally, but we can add analytics or other tracking here
+                    console.log('Form submitted from integrated popup content');
+                });
             });
         }
     };
