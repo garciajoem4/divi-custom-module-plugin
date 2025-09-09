@@ -9,8 +9,9 @@
   },
   "scripts": {
     "start": "divi-scripts start",
-    "build": "divi-scripts build",
-    "zip": "divi-scripts build && divi-scripts zip",
+    "build": "divi-scripts build && npm run minify-css",
+    "minify-css": "node scripts/minify-css.js",
+    "zip": "divi-scripts build && npm run minify-css && divi-scripts zip",
     "eject": "divi-scripts eject"
   },
   "browserslist": {

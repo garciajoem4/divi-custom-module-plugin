@@ -28,13 +28,13 @@
   outline-offset: 2px;
 }
 
-/* Popup Overlay */
+/* Ensure proper centering regardless of content size */
 .dicm-popup-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   z-index: 999999;
   display: flex;
   align-items: center;
@@ -42,6 +42,26 @@
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s ease;
+  box-sizing: border-box;
+  padding: 20px;
+  overflow: auto;
+  /* Fallback centering for older browsers */
+  text-align: center;
+  transform: unset !important;
+}
+
+.dicm-popup-overlay:before {
+  content: '';
+  display: inline-block;
+  height: 100%;
+  vertical-align: middle;
+  width: 0;
+}
+
+.dicm-popup-container {
+  display: inline-block;
+  vertical-align: middle;
+  text-align: left;
 }
 
 .dicm-popup-overlay.active {
@@ -65,9 +85,14 @@
   z-index: 1;
   max-width: 90vw;
   max-height: 90vh;
-  overflow: hidden;
+  overflow: visible;
   transform: scale(0.7);
   transition: all 0.3s ease;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .dicm-popup-overlay.active .dicm-popup-container {
@@ -80,11 +105,37 @@
   border-radius: 8px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   position: relative;
-  width: 600px;
+  width: 100%;
+  min-width: 300px;
   max-width: 100%;
-  max-height: 90vh;
+  max-height: calc(90vh - 40px);
   overflow-y: auto;
   overflow-x: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Popup header */
+.dicm-popup-header {
+  padding: 20px 20px 0 20px;
+  border-bottom: 1px solid #eee;
+  position: relative;
+}
+
+.dicm-popup-title {
+  margin: 0 0 15px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.3;
+}
+
+/* Popup body */
+.dicm-popup-body {
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 /* Popup Positions */
@@ -96,37 +147,41 @@
 .dicm-popup-pos-top_left {
   align-items: flex-start;
   justify-content: flex-start;
-  padding: 20px;
 }
 
 .dicm-popup-pos-top_center {
   align-items: flex-start;
   justify-content: center;
-  padding: 20px;
 }
 
 .dicm-popup-pos-top_right {
   align-items: flex-start;
   justify-content: flex-end;
-  padding: 20px;
+}
+
+.dicm-popup-pos-center_left {
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.dicm-popup-pos-center_right {
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .dicm-popup-pos-bottom_left {
   align-items: flex-end;
   justify-content: flex-start;
-  padding: 20px;
 }
 
 .dicm-popup-pos-bottom_center {
   align-items: flex-end;
   justify-content: center;
-  padding: 20px;
 }
 
 .dicm-popup-pos-bottom_right {
   align-items: flex-end;
   justify-content: flex-end;
-  padding: 20px;
 }
 
 /* Close Button */
@@ -318,62 +373,74 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .dicm-popup-overlay {
+    padding: 10px;
+  }
+  
   .dicm-popup-container {
     max-width: 95vw;
     max-height: 95vh;
   }
   
   .dicm-popup-content {
-    width: 100%;
-    border-radius: 0;
-    max-height: 95vh;
+    min-width: 280px;
+    max-height: calc(95vh - 20px);
+  }
+  
+  .dicm-popup-header {
+    padding: 15px 15px 0 15px;
   }
   
   .dicm-popup-title {
     font-size: 20px;
-    padding: 15px 15px 0 15px;
+    margin-bottom: 10px;
   }
   
-  .dicm-popup-inner {
+  .dicm-popup-body {
     padding: 15px;
   }
   
   .dicm-popup-close {
     top: 10px;
     right: 10px;
+    width: 35px;
+    height: 35px;
     font-size: 20px;
-    width: 25px;
-    height: 25px;
   }
   
-  /* Adjust positions for mobile */
-  .dicm-popup-pos-top_left,
-  .dicm-popup-pos-top_center,
-  .dicm-popup-pos-top_right,
-  .dicm-popup-pos-bottom_left,
-  .dicm-popup-pos-bottom_center,
-  .dicm-popup-pos-bottom_right {
-    padding: 10px;
+  /* Force center positioning on mobile for better UX */
+  .dicm-popup-overlay:not(.dicm-popup-pos-center) {
     align-items: center;
     justify-content: center;
   }
 }
 
 @media (max-width: 480px) {
-  .dicm-popup-trigger {
-    padding: 10px 20px;
-    font-size: 14px;
+  .dicm-popup-overlay {
+    padding: 5px;
+  }
+  
+  .dicm-popup-container {
+    max-width: 98vw;
+    max-height: 98vh;
   }
   
   .dicm-popup-content {
-    min-height: auto;
+    min-width: 250px;
+    max-height: calc(98vh - 10px);
+    border-radius: 6px;
+  }
+  
+  .dicm-popup-header {
+    padding: 10px 10px 0 10px;
   }
   
   .dicm-popup-title {
     font-size: 18px;
+    margin-bottom: 8px;
   }
   
-  .dicm-popup-inner {
+  .dicm-popup-body {
     padding: 10px;
   }
 }

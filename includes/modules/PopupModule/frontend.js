@@ -286,6 +286,9 @@ jQuery(document).ready(function($) {
             // Add to active popups
             this.activePopups.add(popupId);
             
+            // Position the popup properly
+            this.repositionPopup(popupId);
+            
             // Chain animations using jQuery Deferred
             $popup.show()
                 .css({ opacity: 0, transform: 'scale(0.8)' })
@@ -459,15 +462,61 @@ jQuery(document).ready(function($) {
         repositionPopup: function(popupId) {
             const $popup = $('#' + popupId);
             const $container = $popup.find('.dicm-popup-container');
+            const $content = $popup.find('.dicm-popup-content');
             
-            // Reset any inline positioning
+            if (!$popup.length || !$container.length) return;
+            
+            // Get popup configuration
+            const config = $popup.data('config') || {};
+            const position = config.popup_position || 'center';
+            const width = config.popup_width || '600px';
+            const height = config.popup_height || 'auto';
+            
+            // Reset any previous positioning
             $container.css({
                 'margin-top': '',
-                'margin-left': ''
+                'margin-left': '',
+                'transform-origin': 'center center'
             });
             
-            // Recalculate if needed based on popup position setting
-            // This could be expanded for more complex positioning logic
+            $content.css({
+                'width': width,
+                'height': height === 'custom' ? (config.popup_custom_height || '400px') : height
+            });
+            
+            // Apply position-specific adjustments
+            $popup.removeClass('dicm-popup-pos-center dicm-popup-pos-top_left dicm-popup-pos-top_center dicm-popup-pos-top_right dicm-popup-pos-center_left dicm-popup-pos-center_right dicm-popup-pos-bottom_left dicm-popup-pos-bottom_center dicm-popup-pos-bottom_right');
+            $popup.addClass('dicm-popup-pos-' + position);
+            
+            // Handle responsive adjustments
+            const windowWidth = $(window).width();
+            const windowHeight = $(window).height();
+            const contentWidth = parseInt(width);
+            const contentHeight = height === 'auto' ? $content.outerHeight() : parseInt(height === 'custom' ? config.popup_custom_height : height);
+            
+            // Ensure popup fits within viewport
+            if (contentWidth > windowWidth * 0.9) {
+                $content.css('width', '90vw');
+            }
+            
+            if (contentHeight > windowHeight * 0.9) {
+                $content.css('height', '90vh');
+            }
+            
+            // Center transform origin for better scaling
+            const centerX = windowWidth / 2;
+            const centerY = windowHeight / 2;
+            
+            if (position === 'center') {
+                $container.css('transform-origin', 'center center');
+            } else if (position.includes('top')) {
+                $container.css('transform-origin', 'center top');
+            } else if (position.includes('bottom')) {
+                $container.css('transform-origin', 'center bottom');
+            }
+            
+            // Force reflow to ensure positioning is applied
+            $container[0].offsetHeight;
         },
         
         trackPopupEvent: function(action, popupId) {
