@@ -32,7 +32,8 @@ function minifyCSS(css) {
 function combineAndMinifyCSS() {
     const cssFiles = [
         'includes/fields/Input/style.css',
-        'includes/modules/AweberSignup/style.css', 
+        'includes/modules/AweberSignup/style.css',
+        'includes/modules/AweberFormEmbed/style.css',
         'includes/modules/PdfViewer/style.css',
         'includes/modules/PopupModule/style.css'
     ];

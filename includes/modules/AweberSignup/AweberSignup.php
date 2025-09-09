@@ -99,7 +99,19 @@ class DICM_AweberSignup extends ET_Builder_Module {
 				'label'           => esc_html__( 'AWeber Authorization Code', 'dicm-divi-custom-modules' ),
 				'type'            => 'text',
 				'option_category' => 'configuration',
-				'description'     => esc_html__( 'Enter your AWeber authorization code from your AWeber account integrations.', 'dicm-divi-custom-modules' ),
+				'description'     => esc_html__( 'Enter your AWeber authorization code from your AWeber account integrations. This should be a long alphanumeric string.', 'dicm-divi-custom-modules' ),
+				'toggle_slug'     => 'aweber_settings',
+			),
+			'debug_mode' => array(
+				'label'           => esc_html__( 'Debug Mode', 'dicm-divi-custom-modules' ),
+				'type'            => 'yes_no_button',
+				'option_category' => 'configuration',
+				'options'         => array(
+					'on'  => esc_html__( 'Yes', 'dicm-divi-custom-modules' ),
+					'off' => esc_html__( 'No', 'dicm-divi-custom-modules' ),
+				),
+				'default'         => 'off',
+				'description'     => esc_html__( 'Enable debug mode to see detailed error messages and credentials being used.', 'dicm-divi-custom-modules' ),
 				'toggle_slug'     => 'aweber_settings',
 			),
 			'show_name_field' => array(
@@ -224,6 +236,7 @@ class DICM_AweberSignup extends ET_Builder_Module {
 		$enable_gdpr             = $this->props['enable_gdpr'];
 		$gdpr_text               = $this->props['gdpr_text'];
 		$redirect_url            = $this->props['redirect_url'];
+		$debug_mode              = $this->props['debug_mode'];
 
 		// Generate unique form ID
 		$form_id = 'dicm-aweber-' . uniqid();
@@ -233,7 +246,7 @@ class DICM_AweberSignup extends ET_Builder_Module {
 			'dicm-aweber-frontend',
 			plugin_dir_url( __FILE__ ) . 'frontend.js',
 			array( 'jquery' ),
-			'1.0.0',
+			'1.0.1',
 			true
 		);
 
@@ -329,43 +342,122 @@ class DICM_AweberSignup extends ET_Builder_Module {
 			</div>
 		</div>';
 
+		// Debug information (if enabled)
+		if ( 'on' === $debug_mode ) {
+			$output .= '<div class="dicm-aweber-debug" style="margin-top: 15px; padding: 10px; background: #f0f0f0; border: 1px solid #ddd; font-size: 12px;">';
+			$output .= '<strong>Debug Information:</strong><br>';
+			$output .= 'List ID: ' . esc_html( $aweber_list_id ) . '<br>';
+			$output .= 'Authorization Code: ' . esc_html( substr( $aweber_authorization_code, 0, 20 ) ) . '...<br>';
+			$output .= 'Form ID: ' . esc_html( $form_id ) . '<br>';
+			$output .= '<em>Check browser console and server error logs for more details.</em>';
+			$output .= '</div>';
+		}
+
 		$output .= '</div>';
 
 		return $output;
 	}
 
 	public function handle_aweber_subscription( $email, $name = '', $list_id = '', $authorization_code = '' ) {
-		// This is a simplified AWeber integration
-		// In production, you would use AWeber's official PHP SDK
-		
 		if ( empty( $email ) || empty( $list_id ) || empty( $authorization_code ) ) {
-			return false;
+			error_log( 'AWeber: Missing required parameters' );
+			return array( 'success' => false, 'message' => 'Missing required parameters' );
 		}
 
-		// AWeber API endpoint (simplified example)
-		$api_url = 'https://api.aweber.com/1.0/accounts/your-account-id/lists/' . $list_id . '/subscribers';
+		// First, get account info using the authorization code
+		$accounts_response = wp_remote_get( 'https://api.aweber.com/1.0/accounts', array(
+			'headers' => array(
+				'Authorization' => 'Bearer ' . $authorization_code,
+				'User-Agent'    => 'WordPress AWeber Integration/1.0',
+			),
+			'timeout' => 15,
+		) );
+
+		if ( is_wp_error( $accounts_response ) ) {
+			error_log( 'AWeber API Error: ' . $accounts_response->get_error_message() );
+			return array( 'success' => false, 'message' => 'Connection error: ' . $accounts_response->get_error_message() );
+		}
+
+		$accounts_code = wp_remote_retrieve_response_code( $accounts_response );
+		$accounts_body = wp_remote_retrieve_body( $accounts_response );
+
+		if ( $accounts_code !== 200 ) {
+			error_log( 'AWeber API Error: HTTP ' . $accounts_code . ' - ' . $accounts_body );
+			return array( 'success' => false, 'message' => 'Authorization failed. Please check your authorization code.' );
+		}
+
+		$accounts_data = json_decode( $accounts_body, true );
+		
+		if ( empty( $accounts_data['entries'] ) ) {
+			error_log( 'AWeber API Error: No accounts found' );
+			return array( 'success' => false, 'message' => 'No AWeber accounts found' );
+		}
+
+		// Get the first account ID
+		$account_id = $accounts_data['entries'][0]['id'];
+		
+		// Build the subscriber API endpoint
+		$api_url = sprintf( 'https://api.aweber.com/1.0/accounts/%s/lists/%s/subscribers', $account_id, $list_id );
 		
 		$subscriber_data = array(
-			'email'     => $email,
-			'name'      => $name,
-			'ip_address' => $_SERVER['REMOTE_ADDR'],
+			'email' => $email,
+			'name'  => $name,
 		);
+
+		// Add IP address if available
+		if ( isset( $_SERVER['REMOTE_ADDR'] ) ) {
+			$subscriber_data['ip_address'] = $_SERVER['REMOTE_ADDR'];
+		}
 
 		$response = wp_remote_post( $api_url, array(
 			'headers' => array(
 				'Authorization' => 'Bearer ' . $authorization_code,
 				'Content-Type'  => 'application/json',
+				'User-Agent'    => 'WordPress AWeber Integration/1.0',
 			),
 			'body'    => json_encode( $subscriber_data ),
 			'timeout' => 15,
 		) );
 
 		if ( is_wp_error( $response ) ) {
-			return false;
+			error_log( 'AWeber Subscription Error: ' . $response->get_error_message() );
+			return array( 'success' => false, 'message' => 'Connection error: ' . $response->get_error_message() );
 		}
 
 		$response_code = wp_remote_retrieve_response_code( $response );
-		return $response_code === 201 || $response_code === 200;
+		$response_body = wp_remote_retrieve_body( $response );
+
+		// Log the full response for debugging
+		error_log( 'AWeber API Response: HTTP ' . $response_code . ' - ' . $response_body );
+
+		if ( $response_code === 201 || $response_code === 200 ) {
+			return array( 'success' => true, 'message' => 'Subscription successful' );
+		} else {
+			// Parse error response
+			$error_data = json_decode( $response_body, true );
+			$error_message = 'Subscription failed';
+			
+			if ( isset( $error_data['error'] ) ) {
+				if ( isset( $error_data['error']['message'] ) ) {
+					$error_message = $error_data['error']['message'];
+				} elseif ( is_string( $error_data['error'] ) ) {
+					$error_message = $error_data['error'];
+				}
+			}
+			
+			// Handle specific AWeber error codes
+			if ( $response_code === 400 ) {
+				$error_message = 'Bad request: ' . $error_message;
+			} elseif ( $response_code === 401 ) {
+				$error_message = 'Authorization failed. Please check your authorization code.';
+			} elseif ( $response_code === 403 ) {
+				$error_message = 'Access denied. Please check your list ID and permissions.';
+			} elseif ( $response_code === 404 ) {
+				$error_message = 'List not found. Please check your list ID.';
+			}
+
+			return array( 'success' => false, 'message' => $error_message );
+		}
 	}
 
 	public function handle_aweber_submission() {
@@ -374,21 +466,30 @@ class DICM_AweberSignup extends ET_Builder_Module {
 			wp_die( 'Security check failed' );
 		}
 
-		$email                   = sanitize_email( $_POST['subscriber_email'] );
-		$name                    = sanitize_text_field( $_POST['subscriber_name'] ?? '' );
-		$list_id                 = sanitize_text_field( $_POST['aweber_list_id'] );
-		$authorization_code      = sanitize_text_field( $_POST['aweber_authorization_code'] );
-		$redirect_url            = esc_url_raw( $_POST['redirect_url'] ?? '' );
+		$email              = sanitize_email( $_POST['subscriber_email'] );
+		$name               = sanitize_text_field( $_POST['subscriber_name'] ?? '' );
+		$list_id            = sanitize_text_field( $_POST['aweber_list_id'] );
+		$authorization_code = sanitize_text_field( $_POST['aweber_authorization_code'] );
+		$redirect_url       = esc_url_raw( $_POST['redirect_url'] ?? '' );
 
 		// Validate email
 		if ( ! is_email( $email ) ) {
 			wp_send_json_error( array( 'message' => 'Invalid email address.' ) );
 		}
 
-		// Attempt subscription
-		$success = $this->handle_aweber_subscription( $email, $name, $list_id, $authorization_code );
+		// Validate required AWeber settings
+		if ( empty( $list_id ) ) {
+			wp_send_json_error( array( 'message' => 'AWeber List ID is required.' ) );
+		}
 
-		if ( $success ) {
+		if ( empty( $authorization_code ) ) {
+			wp_send_json_error( array( 'message' => 'AWeber Authorization Code is required.' ) );
+		}
+
+		// Attempt subscription
+		$result = $this->handle_aweber_subscription( $email, $name, $list_id, $authorization_code );
+
+		if ( $result['success'] ) {
 			$response = array(
 				'message' => 'Thank you for subscribing! Please check your email to confirm your subscription.',
 			);
@@ -399,7 +500,8 @@ class DICM_AweberSignup extends ET_Builder_Module {
 			
 			wp_send_json_success( $response );
 		} else {
-			wp_send_json_error( array( 'message' => 'There was an error processing your subscription. Please try again.' ) );
+			// Use the detailed error message from the API
+			wp_send_json_error( array( 'message' => $result['message'] ) );
 		}
 	}
 }

@@ -375,6 +375,109 @@ input.dicm-input[readonly] {
 }
 
 
+/* AweberFormEmbed Module Styles */
+/* AWeber Form Embed Module Styles */
+
+.dicm-aweber-embed-container {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.dicm-aweber-embed-title {
+  margin: 0 0 15px 0;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #333;
+}
+
+.dicm-aweber-embed-description {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #666;
+}
+
+.dicm-aweber-embed-description p {
+  margin: 0 0 10px 0;
+}
+
+.dicm-aweber-embed-description p:last-child {
+  margin-bottom: 0;
+}
+
+/* Error message styling */
+.dicm-aweber-embed-error {
+  padding: 20px;
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.dicm-aweber-embed-error strong {
+  font-weight: 600;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .dicm-aweber-embed-container {
+    padding: 0 10px;
+  }
+  
+  .dicm-aweber-embed-title {
+    font-size: 20px;
+  }
+  
+  .dicm-aweber-embed-description {
+    font-size: 14px;
+  }
+}
+
+/* Override AWeber form styles if needed */
+.dicm-aweber-embed-container .AW-Form {
+  margin: 0 auto;
+}
+
+/* Visual Builder preview styles */
+.dicm-aweber-embed-preview {
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  text-align: center;
+  color: #6c757d;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.dicm-aweber-embed-preview .preview-icon {
+  font-size: 18px;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.dicm-aweber-embed-preview .preview-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #495057;
+}
+
+.dicm-aweber-embed-preview .preview-info {
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.dicm-aweber-embed-preview .preview-note {
+  font-size: 12px;
+  margin-top: 10px;
+  opacity: 0.7;
+  font-style: italic;
+}
+
+
 /* PdfViewer Module Styles */
 /* PDF Viewer Module Styles */
 

@@ -90,13 +90,33 @@ jQuery(document).ready(function($) {
             },
             error: function(xhr, status, error) {
                 let errorMessage = 'There was an error processing your request.';
+
+                console.log('Error Details:', {
+                    status: status,
+                    error: error,
+                    xhr: xhr,
+                    responseText: xhr.responseText
+                });
                 
-                if (status === 'timeout') {
-                    errorMessage = 'Request timed out. Please try again.';
-                } else if (xhr.status === 429) {
-                    errorMessage = 'Too many requests. Please wait a moment and try again.';
-                } else if (xhr.status >= 500) {
-                    errorMessage = 'Server error. Please try again later.';
+                // Try to parse error response for more details
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.data && response.data.message) {
+                        errorMessage = response.data.message;
+                    }
+                } catch (e) {
+                    // If can't parse JSON, use status-based messages
+                    if (status === 'timeout') {
+                        errorMessage = 'Request timed out. Please try again.';
+                    } else if (xhr.status === 429) {
+                        errorMessage = 'Too many requests. Please wait a moment and try again.';
+                    } else if (xhr.status >= 500) {
+                        errorMessage = 'Server error. Please try again later.';
+                    } else if (xhr.status === 403) {
+                        errorMessage = 'Access denied. Please check your AWeber settings.';
+                    } else if (xhr.status === 401) {
+                        errorMessage = 'Authorization failed. Please check your AWeber authorization code.';
+                    }
                 }
                 
                 showError($error, errorMessage);
