@@ -1,0 +1,411 @@
+jQuery(document).ready(function($) {
+    'use strict';
+
+    // Initialize popup system
+    const PopupManager = {
+        activePopups: new Set(),
+        scrollPosition: 0,
+        exitIntentTriggered: false,
+        
+        init: function() {
+            this.bindEvents();
+            this.initializePopups();
+        },
+        
+        bindEvents: function() {
+            // Button trigger events
+            $(document).on('click', '.dicm-popup-trigger', this.handleButtonTrigger.bind(this));
+            
+            // Close button events
+            $(document).on('click', '.dicm-popup-close', this.handleCloseButton.bind(this));
+            
+            // Overlay click events
+            $(document).on('click', '.dicm-popup-overlay', this.handleOverlayClick.bind(this));
+            
+            // Prevent clicks on popup content from closing popup
+            $(document).on('click', '.dicm-popup-content', function(e) {
+                e.stopPropagation();
+            });
+            
+            // Keyboard events
+            $(document).on('keydown', this.handleKeyboard.bind(this));
+            
+            // Scroll events for scroll-triggered popups
+            $(window).on('scroll', $.throttle(100, this.handleScroll.bind(this)));
+            
+            // Exit intent events
+            $(document).on('mouseleave', this.handleExitIntent.bind(this));
+            
+            // Window resize events
+            $(window).on('resize', $.throttle(250, this.handleResize.bind(this)));
+        },
+        
+        initializePopups: function() {
+            $('.dicm-popup-overlay').each((index, element) => {
+                const $popup = $(element);
+                const config = $popup.data('config');
+                const popupId = $popup.attr('id');
+                
+                if (!config || !popupId) return;
+                
+                // Initialize popup based on trigger type
+                switch (config.trigger_type) {
+                    case 'page_load':
+                        this.schedulePageLoadPopup(popupId);
+                        break;
+                    case 'time_delay':
+                        this.scheduleTimeDelayPopup(popupId, config.delay_time);
+                        break;
+                    case 'scroll':
+                        this.setupScrollTrigger(popupId, config.scroll_percentage);
+                        break;
+                    case 'exit_intent':
+                        this.setupExitIntentTrigger(popupId);
+                        break;
+                }
+                
+                // Setup auto-close if enabled
+                if (config.auto_close > 0) {
+                    this.setupAutoClose(popupId, config.auto_close);
+                }
+            });
+        },
+        
+        handleButtonTrigger: function(e) {
+            e.preventDefault();
+            const popupId = $(e.currentTarget).data('popup-id');
+            if (popupId) {
+                this.openPopup(popupId);
+            }
+        },
+        
+        handleCloseButton: function(e) {
+            e.preventDefault();
+            const $popup = $(e.currentTarget).closest('.dicm-popup-overlay');
+            this.closePopup($popup.attr('id'));
+        },
+        
+        handleOverlayClick: function(e) {
+            if (e.target === e.currentTarget) {
+                const $popup = $(e.currentTarget);
+                const config = $popup.data('config');
+                
+                if (config && config.close_on_overlay) {
+                    this.closePopup($popup.attr('id'));
+                }
+            }
+        },
+        
+        handleKeyboard: function(e) {
+            if (e.key === 'Escape' && this.activePopups.size > 0) {
+                // Close the most recently opened popup
+                const popupId = Array.from(this.activePopups).pop();
+                const $popup = $('#' + popupId);
+                const config = $popup.data('config');
+                
+                if (config && config.close_on_escape) {
+                    this.closePopup(popupId);
+                }
+            }
+            
+            // Handle Tab key for focus management
+            if (e.key === 'Tab' && this.activePopups.size > 0) {
+                this.handleTabKey(e);
+            }
+        },
+        
+        handleTabKey: function(e) {
+            const popupId = Array.from(this.activePopups).pop();
+            const $popup = $('#' + popupId);
+            const $focusableElements = $popup.find('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+            
+            if ($focusableElements.length === 0) return;
+            
+            const firstElement = $focusableElements[0];
+            const lastElement = $focusableElements[$focusableElements.length - 1];
+            
+            if (e.shiftKey) {
+                if (document.activeElement === firstElement) {
+                    lastElement.focus();
+                    e.preventDefault();
+                }
+            } else {
+                if (document.activeElement === lastElement) {
+                    firstElement.focus();
+                    e.preventDefault();
+                }
+            }
+        },
+        
+        handleScroll: function() {
+            const scrollTop = $(window).scrollTop();
+            const documentHeight = $(document).height();
+            const windowHeight = $(window).height();
+            const scrollPercent = (scrollTop / (documentHeight - windowHeight)) * 100;
+            
+            $('.dicm-popup-overlay[data-scroll-trigger]').each((index, element) => {
+                const $popup = $(element);
+                const triggerPercent = $popup.data('scroll-trigger');
+                
+                if (scrollPercent >= triggerPercent && !this.activePopups.has($popup.attr('id'))) {
+                    this.openPopup($popup.attr('id'));
+                    $popup.removeAttr('data-scroll-trigger'); // Prevent multiple triggers
+                }
+            });
+        },
+        
+        handleExitIntent: function(e) {
+            if (e.clientY <= 0 && !this.exitIntentTriggered) {
+                this.exitIntentTriggered = true;
+                
+                $('.dicm-popup-overlay[data-exit-intent="true"]').each((index, element) => {
+                    const $popup = $(element);
+                    if (!this.activePopups.has($popup.attr('id'))) {
+                        this.openPopup($popup.attr('id'));
+                        $popup.removeAttr('data-exit-intent'); // Prevent multiple triggers
+                    }
+                });
+            }
+        },
+        
+        handleResize: function() {
+            // Reposition popups if needed
+            this.activePopups.forEach(popupId => {
+                this.repositionPopup(popupId);
+            });
+        },
+        
+        schedulePageLoadPopup: function(popupId) {
+            // Small delay to ensure page is fully loaded
+            setTimeout(() => {
+                this.openPopup(popupId);
+            }, 100);
+        },
+        
+        scheduleTimeDelayPopup: function(popupId, delay) {
+            setTimeout(() => {
+                if (!this.activePopups.has(popupId)) {
+                    this.openPopup(popupId);
+                }
+            }, delay * 1000);
+        },
+        
+        setupScrollTrigger: function(popupId, percentage) {
+            $('#' + popupId).attr('data-scroll-trigger', percentage);
+        },
+        
+        setupExitIntentTrigger: function(popupId) {
+            $('#' + popupId).attr('data-exit-intent', 'true');
+        },
+        
+        setupAutoClose: function(popupId, delay) {
+            // This will be called when popup opens
+            $('#' + popupId).data('auto-close-delay', delay);
+        },
+        
+        openPopup: function(popupId) {
+            const $popup = $('#' + popupId);
+            if (!$popup.length || this.activePopups.has(popupId)) return;
+            
+            const config = $popup.data('config');
+            
+            // Store scroll position if scroll prevention is enabled
+            if (config && config.prevent_scroll) {
+                this.scrollPosition = $(window).scrollTop();
+                $('body').addClass('dicm-popup-open').css('top', -this.scrollPosition);
+            }
+            
+            // Add to active popups
+            this.activePopups.add(popupId);
+            
+            // Show popup with animation
+            $popup.show().addClass('active');
+            
+            // Focus management
+            this.manageFocus($popup, 'open');
+            
+            // Setup auto-close if configured
+            const autoCloseDelay = $popup.data('auto-close-delay');
+            if (autoCloseDelay > 0) {
+                setTimeout(() => {
+                    this.closePopup(popupId);
+                }, autoCloseDelay * 1000);
+            }
+            
+            // Trigger custom event
+            $(document).trigger('dicm_popup_opened', [popupId, $popup]);
+            
+            // Analytics tracking
+            this.trackPopupEvent('opened', popupId);
+        },
+        
+        closePopup: function(popupId) {
+            const $popup = $('#' + popupId);
+            if (!$popup.length || !this.activePopups.has(popupId)) return;
+            
+            const config = $popup.data('config');
+            
+            // Remove from active popups
+            this.activePopups.delete(popupId);
+            
+            // Hide popup with animation
+            $popup.removeClass('active');
+            
+            setTimeout(() => {
+                $popup.hide();
+            }, 300); // Match CSS transition duration
+            
+            // Restore scroll if this was the last popup and scroll prevention is enabled
+            if (this.activePopups.size === 0 && config && config.prevent_scroll) {
+                $('body').removeClass('dicm-popup-open').css('top', '');
+                $(window).scrollTop(this.scrollPosition);
+            }
+            
+            // Focus management
+            this.manageFocus($popup, 'close');
+            
+            // Trigger custom event
+            $(document).trigger('dicm_popup_closed', [popupId, $popup]);
+            
+            // Analytics tracking
+            this.trackPopupEvent('closed', popupId);
+        },
+        
+        manageFocus: function($popup, action) {
+            if (action === 'open') {
+                // Store currently focused element
+                $popup.data('previous-focus', document.activeElement);
+                
+                // Focus first focusable element in popup
+                const $firstFocusable = $popup.find('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])').first();
+                if ($firstFocusable.length) {
+                    $firstFocusable.focus();
+                } else {
+                    $popup.find('.dicm-popup-content').focus();
+                }
+            } else if (action === 'close') {
+                // Restore focus to previously focused element
+                const previousFocus = $popup.data('previous-focus');
+                if (previousFocus && $(previousFocus).length) {
+                    $(previousFocus).focus();
+                }
+            }
+        },
+        
+        repositionPopup: function(popupId) {
+            const $popup = $('#' + popupId);
+            const $container = $popup.find('.dicm-popup-container');
+            
+            // Reset any inline positioning
+            $container.css({
+                'margin-top': '',
+                'margin-left': ''
+            });
+            
+            // Recalculate if needed based on popup position setting
+            // This could be expanded for more complex positioning logic
+        },
+        
+        trackPopupEvent: function(action, popupId) {
+            // Google Analytics tracking
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'popup_' + action, {
+                    'popup_id': popupId
+                });
+            }
+            
+            // Facebook Pixel tracking
+            if (typeof fbq !== 'undefined') {
+                fbq('trackCustom', 'Popup' + action.charAt(0).toUpperCase() + action.slice(1), {
+                    popup_id: popupId
+                });
+            }
+        },
+        
+        // Public API methods
+        openPopupById: function(popupId) {
+            this.openPopup(popupId);
+        },
+        
+        closePopupById: function(popupId) {
+            this.closePopup(popupId);
+        },
+        
+        closeAllPopups: function() {
+            this.activePopups.forEach(popupId => {
+                this.closePopup(popupId);
+            });
+        }
+    };
+    
+    // Initialize popup manager
+    PopupManager.init();
+    
+    // Make PopupManager globally accessible
+    window.DICMPopupManager = PopupManager;
+    
+    // jQuery throttle utility (if not already available)
+    if (!$.throttle) {
+        $.throttle = function(delay, fn) {
+            let timeoutId;
+            let lastExec = 0;
+            
+            return function() {
+                const context = this;
+                const args = arguments;
+                const elapsed = Date.now() - lastExec;
+                
+                const exec = function() {
+                    lastExec = Date.now();
+                    fn.apply(context, args);
+                };
+                
+                clearTimeout(timeoutId);
+                
+                if (elapsed > delay) {
+                    exec();
+                } else {
+                    timeoutId = setTimeout(exec, delay - elapsed);
+                }
+            };
+        };
+    }
+    
+    // Touch support for mobile devices
+    if ('ontouchstart' in window) {
+        $(document).on('touchend', '.dicm-popup-trigger', function(e) {
+            // Ensure touch events work properly on mobile
+            $(this).trigger('click');
+        });
+    }
+    
+    // Handle Visual Builder integration
+    if (window.et_builder_api_ready !== undefined) {
+        $(window).on('et_builder_api_ready', function() {
+            // Disable popup triggers in Visual Builder
+            $('.dicm-popup-overlay').removeClass('active').hide();
+        });
+    }
+    
+    // Accessibility improvements
+    $(document).on('focus', '.dicm-popup-content', function() {
+        $(this).attr('tabindex', '-1');
+    });
+    
+    // Handle page visibility changes
+    $(document).on('visibilitychange', function() {
+        if (document.hidden) {
+            // Pause any timers when page is not visible
+            PopupManager.activePopups.forEach(popupId => {
+                const $popup = $('#' + popupId);
+                $popup.addClass('paused');
+            });
+        } else {
+            // Resume when page becomes visible
+            PopupManager.activePopups.forEach(popupId => {
+                const $popup = $('#' + popupId);
+                $popup.removeClass('paused');
+            });
+        }
+    });
+});
