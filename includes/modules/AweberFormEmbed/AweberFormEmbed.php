@@ -175,6 +175,15 @@ class DICM_AweberFormEmbed extends ET_Builder_Module {
 		// Generate unique container ID
 		$container_id = 'dicm-aweber-embed-' . uniqid();
 
+		// Enqueue frontend JavaScript for Safari compatibility
+		wp_enqueue_script(
+			'dicm-aweber-embed-frontend',
+			plugin_dir_url( __FILE__ ) . 'frontend.js',
+			array( 'jquery' ),
+			'1.0.0',
+			true
+		);
+
 		// Build CSS classes
 		$container_classes = array( 'dicm-aweber-embed-container' );
 		if ( ! empty( $custom_css_class ) ) {
