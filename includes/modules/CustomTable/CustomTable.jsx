@@ -23,8 +23,8 @@ class CustomTable extends Component {
     const columns = parseInt(table_columns) || 3;
     const rows = parseInt(table_rows) || 3;
 
-    // Header styles
-    const headerStyles = {
+    // General header styles (fallback)
+    const generalHeaderStyles = {
       backgroundColor: header_bg_color || '#f8f9fa',
       fontFamily: header_font_family || 'inherit',
       fontSize: header_font_size || '16px',
@@ -32,7 +32,46 @@ class CustomTable extends Component {
       fontWeight: header_font_weight || '600'
     };
 
-    // Get column styles
+    // Get individual column header styles
+    const getColumnHeaderStyles = (colIndex) => {
+      const colNum = colIndex + 1;
+      const individualStyles = {};
+      
+      // Use individual column header styles if available, otherwise fall back to general
+      if (this.props[`header_col_${colNum}_bg_color`]) {
+        individualStyles.backgroundColor = this.props[`header_col_${colNum}_bg_color`];
+      } else if (generalHeaderStyles.backgroundColor) {
+        individualStyles.backgroundColor = generalHeaderStyles.backgroundColor;
+      }
+      
+      if (this.props[`header_col_${colNum}_font_family`]) {
+        individualStyles.fontFamily = this.props[`header_col_${colNum}_font_family`];
+      } else if (generalHeaderStyles.fontFamily) {
+        individualStyles.fontFamily = generalHeaderStyles.fontFamily;
+      }
+      
+      if (this.props[`header_col_${colNum}_font_size`]) {
+        individualStyles.fontSize = this.props[`header_col_${colNum}_font_size`];
+      } else if (generalHeaderStyles.fontSize) {
+        individualStyles.fontSize = generalHeaderStyles.fontSize;
+      }
+      
+      if (this.props[`header_col_${colNum}_font_color`]) {
+        individualStyles.color = this.props[`header_col_${colNum}_font_color`];
+      } else if (generalHeaderStyles.color) {
+        individualStyles.color = generalHeaderStyles.color;
+      }
+      
+      if (this.props[`header_col_${colNum}_font_weight`]) {
+        individualStyles.fontWeight = this.props[`header_col_${colNum}_font_weight`];
+      } else if (generalHeaderStyles.fontWeight) {
+        individualStyles.fontWeight = generalHeaderStyles.fontWeight;
+      }
+      
+      return individualStyles;
+    };
+
+    // Get column styles for body cells
     const getColumnStyles = (colIndex) => {
       const colNum = colIndex + 1;
       return {
@@ -49,6 +88,7 @@ class CustomTable extends Component {
       const headers = [];
       for (let col = 0; col < columns; col++) {
         const headerContent = this.props[`header_col_${col + 1}`] || `Header ${col + 1}`;
+        const headerStyles = getColumnHeaderStyles(col);
         headers.push(
           <th key={col} style={headerStyles} className="dicm-table-header">
             {headerContent}

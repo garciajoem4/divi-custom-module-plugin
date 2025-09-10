@@ -644,6 +644,8 @@
   position: relative;
 }
 
+/* Individual column header styles and column body styles are applied via inline styles for better specificity */
+
 .dicm-custom-table td {
   background-color: #ffffff;
   transition: background-color 0.3s ease;
@@ -855,6 +857,105 @@
 
 .et-fb .dicm-custom-table:hover::before {
   opacity: 1;
+}
+
+/* Table Placeholder Styles */
+.dicm-table-placeholder {
+  position: relative;
+  min-height: 200px;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  background: #f8f9fa;
+  overflow: hidden;
+}
+
+.dicm-placeholder-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.dicm-placeholder-table {
+  width: 100%;
+  opacity: 0.6;
+}
+
+.dicm-placeholder-header,
+.dicm-placeholder-row {
+  display: flex;
+  width: 100%;
+}
+
+.dicm-placeholder-header {
+  background: linear-gradient(90deg, #2E7D7D 33.33%, #4A9ABA 33.33%, #4A9ABA 66.66%, #6BC5A0 66.66%);
+}
+
+.dicm-placeholder-cell {
+  flex: 1;
+  padding: 12px 15px;
+  text-align: center;
+  font-size: 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+  color: #333;
+  font-weight: 500;
+}
+
+.dicm-placeholder-header .dicm-placeholder-cell {
+  color: white;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.dicm-placeholder-cell:last-child {
+  border-right: none;
+}
+
+.dicm-placeholder-row {
+  background: white;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.dicm-placeholder-row:last-child {
+  border-bottom: none;
+}
+
+.dicm-placeholder-row .dicm-placeholder-cell {
+  border-right: 1px solid #e9ecef;
+  color: #6c757d;
+}
+
+.dicm-placeholder-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #dee2e6;
+  z-index: 10;
+}
+
+.dicm-placeholder-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+  line-height: 1;
+}
+
+.dicm-placeholder-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.dicm-placeholder-description {
+  font-size: 14px;
+  color: #6c757d;
+  line-height: 1.4;
+  max-width: 200px;
 }
 
 /* Column specific styles - dynamically applied via PHP */

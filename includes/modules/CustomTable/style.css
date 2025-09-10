@@ -40,6 +40,8 @@
   position: relative;
 }
 
+/* Individual column header styles and column body styles are applied via inline styles for better specificity */
+
 .dicm-custom-table td {
   background-color: #ffffff;
   transition: background-color 0.3s ease;
