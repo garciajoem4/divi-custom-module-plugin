@@ -1,7 +1,4 @@
-import AweberFormEmbed from './AweberFormEmbed/AweberFormEmbed';
-import AweberSignup from './AweberSignup/AweberSignup';
 import CustomTable from './CustomTable/CustomTable';
-import PdfViewer from './PdfViewer/PdfViewer';
-import PopupModule from './PopupModule/PopupModule';
+import IncomeCalculator from './IncomeCalculator/IncomeCalculator';
 
-export default [AweberSignup, AweberFormEmbed, PdfViewer, PopupModule, CustomTable];
+export default [CustomTable, IncomeCalculator];

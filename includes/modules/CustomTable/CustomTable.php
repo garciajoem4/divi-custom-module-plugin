@@ -96,6 +96,53 @@ class DICM_CustomTable extends ET_Builder_Module {
 				'toggle_slug'     => 'table_structure',
 			),
 
+			// Table-wide settings
+			'table_font_family' => array(
+				'label'           => esc_html__( 'Table Font Family', 'dicm-divi-custom-modules' ),
+				'type'            => 'font',
+				'option_category' => 'font_option',
+				'description'     => esc_html__( 'Choose the font family for the entire table.', 'dicm-divi-custom-modules' ),
+				'toggle_slug'     => 'table_settings',
+			),
+			'table_borders' => array(
+				'label'           => esc_html__( 'Show Table Borders', 'dicm-divi-custom-modules' ),
+				'type'            => 'yes_no_button',
+				'option_category' => 'layout',
+				'options'         => array(
+					'on'  => esc_html__( 'Yes', 'dicm-divi-custom-modules' ),
+					'off' => esc_html__( 'No', 'dicm-divi-custom-modules' ),
+				),
+				'default'         => 'on',
+				'description'     => esc_html__( 'Choose whether to show table borders.', 'dicm-divi-custom-modules' ),
+				'toggle_slug'     => 'table_settings',
+			),
+			'header_padding' => array(
+				'label'           => esc_html__( 'Header Padding', 'dicm-divi-custom-modules' ),
+				'type'            => 'range',
+				'option_category' => 'layout',
+				'default'         => '12px',
+				'range_settings'  => array(
+					'min'  => '5',
+					'max'  => '30',
+					'step' => '1',
+				),
+				'description'     => esc_html__( 'Choose the padding for table headers.', 'dicm-divi-custom-modules' ),
+				'toggle_slug'     => 'table_settings',
+			),
+			'cell_padding' => array(
+				'label'           => esc_html__( 'Cell Padding', 'dicm-divi-custom-modules' ),
+				'type'            => 'range',
+				'option_category' => 'layout',
+				'default'         => '12px',
+				'range_settings'  => array(
+					'min'  => '5',
+					'max'  => '30',
+					'step' => '1',
+				),
+				'description'     => esc_html__( 'Choose the padding for table cells.', 'dicm-divi-custom-modules' ),
+				'toggle_slug'     => 'table_settings',
+			),
+
 			// Header styling
 			'header_bg_color' => array(
 				'label'           => esc_html__( 'Header Background Color', 'dicm-divi-custom-modules' ),
@@ -103,13 +150,6 @@ class DICM_CustomTable extends ET_Builder_Module {
 				'option_category' => 'color_option',
 				'default'         => '#f8f9fa',
 				'description'     => esc_html__( 'Choose the background color for table headers.', 'dicm-divi-custom-modules' ),
-				'toggle_slug'     => 'header_styling',
-			),
-			'header_font_family' => array(
-				'label'           => esc_html__( 'Header Font Family', 'dicm-divi-custom-modules' ),
-				'type'            => 'font',
-				'option_category' => 'font_option',
-				'description'     => esc_html__( 'Choose the font family for table headers.', 'dicm-divi-custom-modules' ),
 				'toggle_slug'     => 'header_styling',
 			),
 			'header_font_size' => array(
@@ -146,8 +186,25 @@ class DICM_CustomTable extends ET_Builder_Module {
 					'800' => esc_html__( 'Extra Bold', 'dicm-divi-custom-modules' ),
 				),
 				'default'         => '600',
-				'description'     => esc_html__( 'Choose the font weight for table headers.', 'dicm-divi-custom-modules' ),
+				'description'     => esc_html__( 'Choose the font weight for all table headers.', 'dicm-divi-custom-modules' ),
 				'toggle_slug'     => 'header_styling',
+			),
+
+			// Content styling
+			'content_font_weight' => array(
+				'label'           => esc_html__( 'Content Font Weight', 'dicm-divi-custom-modules' ),
+				'type'            => 'select',
+				'option_category' => 'font_option',
+				'options'         => array(
+					'300' => esc_html__( 'Light', 'dicm-divi-custom-modules' ),
+					'400' => esc_html__( 'Normal', 'dicm-divi-custom-modules' ),
+					'500' => esc_html__( 'Medium', 'dicm-divi-custom-modules' ),
+					'600' => esc_html__( 'Semi Bold', 'dicm-divi-custom-modules' ),
+					'700' => esc_html__( 'Bold', 'dicm-divi-custom-modules' ),
+				),
+				'default'         => '400',
+				'description'     => esc_html__( 'Choose the font weight for all table content.', 'dicm-divi-custom-modules' ),
+				'toggle_slug'     => 'content_styling',
 			),
 		);
 
@@ -178,32 +235,13 @@ class DICM_CustomTable extends ET_Builder_Module {
 			}
 		}
 
-		// Add individual column header styling fields
+		// Add individual column header styling fields (only colors)
 		for ( $col = 1; $col <= 5; $col++ ) {
 			$fields["header_col_{$col}_bg_color"] = array(
 				'label'           => sprintf( esc_html__( 'Header Column %d Background Color', 'dicm-divi-custom-modules' ), $col ),
 				'type'            => 'color-alpha',
 				'option_category' => 'color_option',
 				'description'     => sprintf( esc_html__( 'Choose the background color for header column %d. Leave empty to use general header styling.', 'dicm-divi-custom-modules' ), $col ),
-				'toggle_slug'     => "header_col_{$col}_styling",
-			);
-			$fields["header_col_{$col}_font_family"] = array(
-				'label'           => sprintf( esc_html__( 'Header Column %d Font Family', 'dicm-divi-custom-modules' ), $col ),
-				'type'            => 'font',
-				'option_category' => 'font_option',
-				'description'     => sprintf( esc_html__( 'Choose the font family for header column %d. Leave empty to use general header styling.', 'dicm-divi-custom-modules' ), $col ),
-				'toggle_slug'     => "header_col_{$col}_styling",
-			);
-			$fields["header_col_{$col}_font_size"] = array(
-				'label'           => sprintf( esc_html__( 'Header Column %d Font Size', 'dicm-divi-custom-modules' ), $col ),
-				'type'            => 'range',
-				'option_category' => 'font_option',
-				'range_settings'  => array(
-					'min'  => '10',
-					'max'  => '32',
-					'step' => '1',
-				),
-				'description'     => sprintf( esc_html__( 'Choose the font size for header column %d. Leave empty to use general header styling.', 'dicm-divi-custom-modules' ), $col ),
 				'toggle_slug'     => "header_col_{$col}_styling",
 			);
 			$fields["header_col_{$col}_font_color"] = array(
@@ -213,22 +251,6 @@ class DICM_CustomTable extends ET_Builder_Module {
 				'description'     => sprintf( esc_html__( 'Choose the font color for header column %d. Leave empty to use general header styling.', 'dicm-divi-custom-modules' ), $col ),
 				'toggle_slug'     => "header_col_{$col}_styling",
 			);
-			$fields["header_col_{$col}_font_weight"] = array(
-				'label'           => sprintf( esc_html__( 'Header Column %d Font Weight', 'dicm-divi-custom-modules' ), $col ),
-				'type'            => 'select',
-				'option_category' => 'font_option',
-				'options'         => array(
-					''    => esc_html__( 'Use General Header Style', 'dicm-divi-custom-modules' ),
-					'300' => esc_html__( 'Light', 'dicm-divi-custom-modules' ),
-					'400' => esc_html__( 'Normal', 'dicm-divi-custom-modules' ),
-					'500' => esc_html__( 'Medium', 'dicm-divi-custom-modules' ),
-					'600' => esc_html__( 'Semi Bold', 'dicm-divi-custom-modules' ),
-					'700' => esc_html__( 'Bold', 'dicm-divi-custom-modules' ),
-					'800' => esc_html__( 'Extra Bold', 'dicm-divi-custom-modules' ),
-				),
-				'description'     => sprintf( esc_html__( 'Choose the font weight for header column %d. Leave empty to use general header styling.', 'dicm-divi-custom-modules' ), $col ),
-				'toggle_slug'     => "header_col_{$col}_styling",
-			);
 
 			// Set show_if conditions for individual column header styling
 			$show_conditions = array();
@@ -236,14 +258,14 @@ class DICM_CustomTable extends ET_Builder_Module {
 				$show_conditions[] = (string) $c;
 			}
 			
-			foreach ( array( 'bg_color', 'font_family', 'font_size', 'font_color', 'font_weight' ) as $property ) {
+			foreach ( array( 'bg_color', 'font_color' ) as $property ) {
 				$fields["header_col_{$col}_{$property}"]['show_if'] = array(
 					'table_columns' => $show_conditions,
 				);
 			}
 		}
 
-		// Add column styling fields
+		// Add column styling fields (only colors and font size)
 		for ( $col = 1; $col <= 5; $col++ ) {
 			$fields["col_{$col}_bg_color"] = array(
 				'label'           => sprintf( esc_html__( 'Column %d Background Color', 'dicm-divi-custom-modules' ), $col ),
@@ -251,13 +273,6 @@ class DICM_CustomTable extends ET_Builder_Module {
 				'option_category' => 'color_option',
 				'default'         => '#ffffff',
 				'description'     => sprintf( esc_html__( 'Choose the background color for column %d.', 'dicm-divi-custom-modules' ), $col ),
-				'toggle_slug'     => "col_{$col}_styling",
-			);
-			$fields["col_{$col}_font_family"] = array(
-				'label'           => sprintf( esc_html__( 'Column %d Font Family', 'dicm-divi-custom-modules' ), $col ),
-				'type'            => 'font',
-				'option_category' => 'font_option',
-				'description'     => sprintf( esc_html__( 'Choose the font family for column %d.', 'dicm-divi-custom-modules' ), $col ),
 				'toggle_slug'     => "col_{$col}_styling",
 			);
 			$fields["col_{$col}_font_size"] = array(
@@ -281,21 +296,6 @@ class DICM_CustomTable extends ET_Builder_Module {
 				'description'     => sprintf( esc_html__( 'Choose the font color for column %d.', 'dicm-divi-custom-modules' ), $col ),
 				'toggle_slug'     => "col_{$col}_styling",
 			);
-			$fields["col_{$col}_font_weight"] = array(
-				'label'           => sprintf( esc_html__( 'Column %d Font Weight', 'dicm-divi-custom-modules' ), $col ),
-				'type'            => 'select',
-				'option_category' => 'font_option',
-				'options'         => array(
-					'300' => esc_html__( 'Light', 'dicm-divi-custom-modules' ),
-					'400' => esc_html__( 'Normal', 'dicm-divi-custom-modules' ),
-					'500' => esc_html__( 'Medium', 'dicm-divi-custom-modules' ),
-					'600' => esc_html__( 'Semi Bold', 'dicm-divi-custom-modules' ),
-					'700' => esc_html__( 'Bold', 'dicm-divi-custom-modules' ),
-				),
-				'default'         => '400',
-				'description'     => sprintf( esc_html__( 'Choose the font weight for column %d.', 'dicm-divi-custom-modules' ), $col ),
-				'toggle_slug'     => "col_{$col}_styling",
-			);
 
 			// Set show_if conditions for column styling
 			$show_conditions = array();
@@ -303,7 +303,7 @@ class DICM_CustomTable extends ET_Builder_Module {
 				$show_conditions[] = (string) $c;
 			}
 			
-			foreach ( array( 'bg_color', 'font_family', 'font_size', 'font_color', 'font_weight' ) as $property ) {
+			foreach ( array( 'bg_color', 'font_size', 'font_color' ) as $property ) {
 				$fields["col_{$col}_{$property}"]['show_if'] = array(
 					'table_columns' => $show_conditions,
 				);
@@ -348,7 +348,9 @@ class DICM_CustomTable extends ET_Builder_Module {
 				'toggles' => array(
 					'table_structure' => esc_html__( 'Table Structure', 'dicm-divi-custom-modules' ),
 					'table_content'   => esc_html__( 'Table Content', 'dicm-divi-custom-modules' ),
+					'table_settings'  => esc_html__( 'Table Settings', 'dicm-divi-custom-modules' ),
 					'header_styling'  => esc_html__( 'Header Styling', 'dicm-divi-custom-modules' ),
+					'content_styling' => esc_html__( 'Content Styling', 'dicm-divi-custom-modules' ),
 				),
 			),
 			'advanced' => array(
@@ -378,15 +380,30 @@ class DICM_CustomTable extends ET_Builder_Module {
 		$table_columns = $this->props['table_columns'];
 		$table_rows    = $this->props['table_rows'];
 		$table_style   = $this->props['table_style'];
+		$table_borders = $this->props['table_borders'];
+		$table_font_family = $this->props['table_font_family'];
 
 		// Generate unique table ID
 		$table_id = 'dicm-custom-table-' . uniqid();
 
+		// Build container classes
+		$container_classes = array( 'dicm-custom-table', "dicm-table-{$table_style}" );
+		if ( 'off' === $table_borders ) {
+			$container_classes[] = 'dicm-no-borders';
+		}
+
+		// Table container styles
+		$table_container_styles = array();
+		if ( ! empty( $table_font_family ) ) {
+			$table_container_styles[] = sprintf( 'font-family: %s', esc_attr( $table_font_family ) );
+		}
+
 		// Build the table
 		$output = sprintf(
-			'<div id="%s" class="dicm-custom-table dicm-table-%s">',
+			'<div id="%s" class="%s" style="%s">',
 			esc_attr( $table_id ),
-			esc_attr( $table_style )
+			esc_attr( implode( ' ', $container_classes ) ),
+			esc_attr( implode( '; ', $table_container_styles ) )
 		);
 
 		$output .= '<table>';
@@ -440,28 +457,24 @@ class DICM_CustomTable extends ET_Builder_Module {
 			$styles[] = sprintf( 'background-color: %s', esc_attr( $this->props['header_bg_color'] ) );
 		}
 
-		if ( ! empty( $this->props["header_col_{$col}_font_family"] ) ) {
-			$styles[] = sprintf( 'font-family: %s', esc_attr( $this->props["header_col_{$col}_font_family"] ) );
-		} elseif ( ! empty( $this->props['header_font_family'] ) ) {
-			$styles[] = sprintf( 'font-family: %s', esc_attr( $this->props['header_font_family'] ) );
-		}
-
-		if ( ! empty( $this->props["header_col_{$col}_font_size"] ) ) {
-			$styles[] = sprintf( 'font-size: %s', esc_attr( $this->props["header_col_{$col}_font_size"] ) );
-		} elseif ( ! empty( $this->props['header_font_size'] ) ) {
-			$styles[] = sprintf( 'font-size: %s', esc_attr( $this->props['header_font_size'] ) );
-		}
-
 		if ( ! empty( $this->props["header_col_{$col}_font_color"] ) ) {
 			$styles[] = sprintf( 'color: %s', esc_attr( $this->props["header_col_{$col}_font_color"] ) );
 		} elseif ( ! empty( $this->props['header_font_color'] ) ) {
 			$styles[] = sprintf( 'color: %s', esc_attr( $this->props['header_font_color'] ) );
 		}
 
-		if ( ! empty( $this->props["header_col_{$col}_font_weight"] ) ) {
-			$styles[] = sprintf( 'font-weight: %s', esc_attr( $this->props["header_col_{$col}_font_weight"] ) );
-		} elseif ( ! empty( $this->props['header_font_weight'] ) ) {
+		// General header styles
+		if ( ! empty( $this->props['header_font_size'] ) ) {
+			$styles[] = sprintf( 'font-size: %s', esc_attr( $this->props['header_font_size'] ) );
+		}
+
+		if ( ! empty( $this->props['header_font_weight'] ) ) {
 			$styles[] = sprintf( 'font-weight: %s', esc_attr( $this->props['header_font_weight'] ) );
+		}
+
+		// Custom padding
+		if ( ! empty( $this->props['header_padding'] ) ) {
+			$styles[] = sprintf( 'padding: %s', esc_attr( $this->props['header_padding'] ) );
 		}
 
 		return implode( '; ', $styles );
@@ -473,17 +486,21 @@ class DICM_CustomTable extends ET_Builder_Module {
 		if ( ! empty( $this->props["col_{$col}_bg_color"] ) ) {
 			$styles[] = sprintf( 'background-color: %s', esc_attr( $this->props["col_{$col}_bg_color"] ) );
 		}
-		if ( ! empty( $this->props["col_{$col}_font_family"] ) ) {
-			$styles[] = sprintf( 'font-family: %s', esc_attr( $this->props["col_{$col}_font_family"] ) );
-		}
 		if ( ! empty( $this->props["col_{$col}_font_size"] ) ) {
 			$styles[] = sprintf( 'font-size: %s', esc_attr( $this->props["col_{$col}_font_size"] ) );
 		}
 		if ( ! empty( $this->props["col_{$col}_font_color"] ) ) {
 			$styles[] = sprintf( 'color: %s', esc_attr( $this->props["col_{$col}_font_color"] ) );
 		}
-		if ( ! empty( $this->props["col_{$col}_font_weight"] ) ) {
-			$styles[] = sprintf( 'font-weight: %s', esc_attr( $this->props["col_{$col}_font_weight"] ) );
+
+		// General content font weight
+		if ( ! empty( $this->props['content_font_weight'] ) ) {
+			$styles[] = sprintf( 'font-weight: %s', esc_attr( $this->props['content_font_weight'] ) );
+		}
+
+		// Custom padding
+		if ( ! empty( $this->props['cell_padding'] ) ) {
+			$styles[] = sprintf( 'padding: %s', esc_attr( $this->props['cell_padding'] ) );
 		}
 
 		return implode( '; ', $styles );

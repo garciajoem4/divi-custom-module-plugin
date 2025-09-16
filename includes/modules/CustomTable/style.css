@@ -1,6 +1,6 @@
 /* Custom Table Module Styles */
 
-.dicm-custom-table {
+.dicm-custom-table-wrapper {
   width: 100%;
   margin: 0 auto;
   overflow-x: auto;
@@ -9,7 +9,7 @@
   box-sizing: border-box;
 }
 
-.dicm-custom-table table {
+.dicm-custom-table {
   width: 100%;
   border-collapse: collapse;
   border-spacing: 0;
@@ -38,6 +38,13 @@
   font-weight: 600;
   border-bottom: 2px solid #dee2e6;
   position: relative;
+}
+
+/* No borders class */
+.dicm-custom-table.dicm-no-borders,
+.dicm-custom-table.dicm-no-borders th,
+.dicm-custom-table.dicm-no-borders td {
+  border: none;
 }
 
 /* Individual column header styles and column body styles are applied via inline styles for better specificity */

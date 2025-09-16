@@ -10,84 +10,103 @@ class CustomTable extends Component {
 
   render() {
     const {
-      table_columns,
-      table_rows,
-      table_style,
+      columns = 3,
+      rows = 3,
+      include_header = 'on',
+      table_font_family,
+      table_borders,
       header_bg_color,
-      header_font_family,
       header_font_size,
       header_font_color,
-      header_font_weight
+      header_font_weight,
+      content_font_weight,
+      header_padding,
+      cell_padding
     } = this.props;
 
-    const columns = parseInt(table_columns) || 3;
-    const rows = parseInt(table_rows) || 3;
+    const colCount = parseInt(columns, 10) || 3;
+    const rowCount = parseInt(rows, 10) || 3;
 
-    // General header styles (fallback)
-    const generalHeaderStyles = {
-      backgroundColor: header_bg_color || '#f8f9fa',
-      fontFamily: header_font_family || 'inherit',
-      fontSize: header_font_size || '16px',
-      color: header_font_color || '#333333',
-      fontWeight: header_font_weight || '600'
-    };
+    // Table-wide styles
+    const tableStyle = {};
+    if (table_font_family) {
+      tableStyle.fontFamily = table_font_family;
+    }
+
+    // Table classes
+    const tableClasses = ['dicm-custom-table'];
+    if (table_borders === 'off') {
+      tableClasses.push('dicm-no-borders');
+    }
 
     // Get individual column header styles
     const getColumnHeaderStyles = (colIndex) => {
       const colNum = colIndex + 1;
-      const individualStyles = {};
+      const styles = {};
       
-      // Use individual column header styles if available, otherwise fall back to general
+      // Individual column header styles (priority)
       if (this.props[`header_col_${colNum}_bg_color`]) {
-        individualStyles.backgroundColor = this.props[`header_col_${colNum}_bg_color`];
-      } else if (generalHeaderStyles.backgroundColor) {
-        individualStyles.backgroundColor = generalHeaderStyles.backgroundColor;
-      }
-      
-      if (this.props[`header_col_${colNum}_font_family`]) {
-        individualStyles.fontFamily = this.props[`header_col_${colNum}_font_family`];
-      } else if (generalHeaderStyles.fontFamily) {
-        individualStyles.fontFamily = generalHeaderStyles.fontFamily;
-      }
-      
-      if (this.props[`header_col_${colNum}_font_size`]) {
-        individualStyles.fontSize = this.props[`header_col_${colNum}_font_size`];
-      } else if (generalHeaderStyles.fontSize) {
-        individualStyles.fontSize = generalHeaderStyles.fontSize;
+        styles.backgroundColor = this.props[`header_col_${colNum}_bg_color`];
+      } else if (header_bg_color) {
+        styles.backgroundColor = header_bg_color;
       }
       
       if (this.props[`header_col_${colNum}_font_color`]) {
-        individualStyles.color = this.props[`header_col_${colNum}_font_color`];
-      } else if (generalHeaderStyles.color) {
-        individualStyles.color = generalHeaderStyles.color;
+        styles.color = this.props[`header_col_${colNum}_font_color`];
+      } else if (header_font_color) {
+        styles.color = header_font_color;
+      }
+
+      // General header styles
+      if (header_font_size) {
+        styles.fontSize = header_font_size;
+      }
+
+      if (header_font_weight) {
+        styles.fontWeight = header_font_weight;
+      }
+
+      // Custom padding
+      if (header_padding) {
+        styles.padding = header_padding;
       }
       
-      if (this.props[`header_col_${colNum}_font_weight`]) {
-        individualStyles.fontWeight = this.props[`header_col_${colNum}_font_weight`];
-      } else if (generalHeaderStyles.fontWeight) {
-        individualStyles.fontWeight = generalHeaderStyles.fontWeight;
-      }
-      
-      return individualStyles;
+      return styles;
     };
 
     // Get column styles for body cells
     const getColumnStyles = (colIndex) => {
       const colNum = colIndex + 1;
-      return {
-        backgroundColor: this.props[`col_${colNum}_bg_color`] || '#ffffff',
-        fontFamily: this.props[`col_${colNum}_font_family`] || 'inherit',
-        fontSize: this.props[`col_${colNum}_font_size`] || '14px',
-        color: this.props[`col_${colNum}_font_color`] || '#333333',
-        fontWeight: this.props[`col_${colNum}_font_weight`] || '400'
-      };
+      const styles = {};
+
+      if (this.props[`col_${colNum}_bg_color`]) {
+        styles.backgroundColor = this.props[`col_${colNum}_bg_color`];
+      }
+      if (this.props[`col_${colNum}_font_size`]) {
+        styles.fontSize = this.props[`col_${colNum}_font_size`];
+      }
+      if (this.props[`col_${colNum}_font_color`]) {
+        styles.color = this.props[`col_${colNum}_font_color`];
+      }
+
+      // General content font weight
+      if (content_font_weight) {
+        styles.fontWeight = content_font_weight;
+      }
+
+      // Custom padding
+      if (cell_padding) {
+        styles.padding = cell_padding;
+      }
+
+      return styles;
     };
 
     // Render table headers
     const renderHeaders = () => {
       const headers = [];
-      for (let col = 0; col < columns; col++) {
-        const headerContent = this.props[`header_col_${col + 1}`] || `Header ${col + 1}`;
+      for (let col = 0; col < colCount; col++) {
+        const headerContent = this.props[`header_${col + 1}`] || `Header ${col + 1}`;
         const headerStyles = getColumnHeaderStyles(col);
         headers.push(
           <th key={col} style={headerStyles} className="dicm-table-header">
@@ -101,10 +120,10 @@ class CustomTable extends Component {
     // Render table rows
     const renderRows = () => {
       const tableRows = [];
-      for (let row = 0; row < rows; row++) {
+      for (let row = 0; row < rowCount; row++) {
         const cells = [];
-        for (let col = 0; col < columns; col++) {
-          const cellContent = this.props[`row_${row + 1}_col_${col + 1}`] || `Row ${row + 1}, Col ${col + 1}`;
+        for (let col = 0; col < colCount; col++) {
+          const cellContent = this.props[`cell_${row + 1}_${col + 1}`] || `Cell ${row + 1}-${col + 1}`;
           const colStyles = getColumnStyles(col);
           cells.push(
             <td key={col} style={colStyles} className="dicm-table-cell">
@@ -118,13 +137,15 @@ class CustomTable extends Component {
     };
 
     return (
-      <div className={`dicm-custom-table dicm-table-${table_style || 'default'}`}>
-        <table>
-          <thead>
-            <tr>
-              {renderHeaders()}
-            </tr>
-          </thead>
+      <div className="dicm-custom-table-wrapper">
+        <table className={tableClasses.join(' ')} style={tableStyle}>
+          {include_header === 'on' && (
+            <thead>
+              <tr>
+                {renderHeaders()}
+              </tr>
+            </thead>
+          )}
           <tbody>
             {renderRows()}
           </tbody>
