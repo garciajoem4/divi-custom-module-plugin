@@ -267,8 +267,8 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 		// Enqueue the frontend bundle that includes React component initialization
 		wp_enqueue_script(
 			'dicm-frontend-bundle',
-			plugin_dir_url( dirname( dirname( __FILE__ ) ) ) . 'scripts/frontend-bundle.min.js',
-			array(),
+			plugin_dir_url( dirname( dirname( dirname( __FILE__ ) ) ) ) . 'scripts/frontend-bundle.min.js',
+			array( 'react', 'react-dom' ),
 			'1.0.0',
 			true
 		);
@@ -333,86 +333,19 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 			'nonce' => wp_create_nonce( 'timesheet_tracker_nonce' ),
 		);
 
+		// Add login URL to config for React component
+		$config['loginUrl'] = wp_login_url( get_permalink() );
 		$config_json = wp_json_encode($config);
 
-		// Build output
+		// Build minimal output - React will handle all content rendering
 		$output = sprintf(
-			'<div class="dicm-timesheet-tracker" data-config="%s">',
+			'<div class="dicm-timesheet-tracker" data-config="%s">
+				<div style="text-align: center; padding: 20px; color: #007cba;">
+					<div class="loading-spinner">Loading Timesheet...</div>
+				</div>
+			</div>',
 			esc_attr($config_json)
 		);
-
-		// Show login prompt for non-logged users
-		if (!$is_logged_in) {
-			$output .= '
-				<div class="login-prompt">
-					<div class="login-message">
-						<h4>Preview Mode - Login to Track Your Time</h4>
-						<p>You\'re viewing a demo of the Timesheet Tracker. <a href="' . wp_login_url( get_permalink() ) . '" class="login-link">Log in</a> to track your own time entries.</p>
-					</div>
-				</div>';
-		}
-
-		if (!empty($table_title)) {
-			$output .= sprintf(
-				'<div class="timesheet-title">
-					<h3>%s</h3>
-				</div>',
-				esc_html($table_title)
-			);
-		}
-
-		if ($show_timer === 'on' && $is_logged_in) {
-			$output .= '
-				<div class="timer-section">
-					<div class="timer-display">
-						<span class="timer-time">00:00:00</span>
-						<div class="timer-controls">
-							<button class="timer-btn start-btn" data-action="start">
-								<span class="btn-text">Start</span>
-							</button>
-							<button class="timer-btn stop-btn" data-action="stop" style="display: none;">
-								<span class="btn-text">Stop</span>
-							</button>
-							<button class="timer-btn reset-btn" data-action="reset">
-								<span class="btn-text">Reset</span>
-							</button>
-						</div>
-					</div>
-				</div>';
-		}
-
-		$output .= '
-			<div class="timesheet-container">
-				<div class="timesheet-controls">
-					<button class="add-row-btn">+ Add Row</button>
-					<button class="clear-all-btn">Clear All</button>
-					<div class="total-summary">
-						<span class="total-hours">Total Hours: <strong>0.00</strong></span>
-						<span class="total-amount">Total Amount: <strong>$0.00</strong></span>
-					</div>
-				</div>
-				
-				<div class="timesheet-table-wrapper">
-					<table class="timesheet-table">
-						<thead class="timesheet-header">
-							<tr>
-								<th>Date</th>
-								<th>Project</th>
-								<th>Tasks</th>
-								<th>Notes</th>
-								<th>Hours</th>
-								<th>Billable Rate</th>
-								<th>Billable Amount</th>
-								<th>Actions</th>
-							</tr>
-						</thead>
-						<tbody class="timesheet-body">
-							<!-- Rows will be populated by JavaScript -->
-						</tbody>
-					</table>
-				</div>
-			</div>
-		</div>';
 
 		return $output;
 	}

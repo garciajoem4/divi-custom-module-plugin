@@ -200,10 +200,90 @@ function dicm_create_timesheet_table() {
 	}
 }
 
+function dicm_timesheet_load_public_entries() {
+	error_log('TimesheetTracker: dicm_timesheet_load_public_entries called');
+	
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'timesheet_entries';
+	
+	// Get filter parameter
+	$filter = sanitize_text_field( $_POST['filter'] ?? 'this_week' );
+	
+	// Calculate date ranges based on filter
+	$start_date = '';
+	$end_date = '';
+	
+	switch( $filter ) {
+		case 'this_week':
+			$start_date = date('Y-m-d', strtotime('monday this week'));
+			$end_date = date('Y-m-d', strtotime('sunday this week'));
+			break;
+		case 'last_week':
+			$start_date = date('Y-m-d', strtotime('monday last week'));
+			$end_date = date('Y-m-d', strtotime('sunday last week'));
+			break;
+		case 'this_month':
+			$start_date = date('Y-m-01');
+			$end_date = date('Y-m-t');
+			break;
+		case 'last_month':
+			$start_date = date('Y-m-01', strtotime('first day of last month'));
+			$end_date = date('Y-m-t', strtotime('last day of last month'));
+			break;
+		default:
+			// Default to this week
+			$start_date = date('Y-m-d', strtotime('monday this week'));
+			$end_date = date('Y-m-d', strtotime('sunday this week'));
+	}
+	
+	error_log("TimesheetTracker: Loading public entries from $start_date to $end_date");
+	
+	// Query entries within date range - exclude user info and financial data for privacy
+	$entries = $wpdb->get_results( $wpdb->prepare( 
+		"SELECT 
+			entry_date, 
+			project, 
+			tasks, 
+			notes, 
+			hours 
+		FROM $table_name 
+		WHERE entry_date BETWEEN %s AND %s 
+		ORDER BY entry_date DESC, id DESC",
+		$start_date, 
+		$end_date 
+	) );
+	
+	if ( $entries ) {
+		error_log('TimesheetTracker: Found ' . count($entries) . ' public entries');
+		wp_send_json_success( array( 
+			'entries' => $entries,
+			'filter' => $filter,
+			'date_range' => array(
+				'start' => $start_date,
+				'end' => $end_date
+			)
+		) );
+	} else {
+		error_log('TimesheetTracker: No public entries found');
+		wp_send_json_success( array( 
+			'entries' => array(),
+			'filter' => $filter,
+			'date_range' => array(
+				'start' => $start_date,
+				'end' => $end_date
+			)
+		) );
+	}
+}
+
 // Register AJAX handlers
 add_action( 'wp_ajax_timesheet_save_entry', 'dicm_timesheet_save_entry' );
 add_action( 'wp_ajax_timesheet_load_entries', 'dicm_timesheet_load_entries' );
 add_action( 'wp_ajax_timesheet_delete_entry', 'dicm_timesheet_delete_entry' );
+
+// Public data endpoint - available to both logged and non-logged users
+add_action( 'wp_ajax_timesheet_load_public_entries', 'dicm_timesheet_load_public_entries' );
+add_action( 'wp_ajax_nopriv_timesheet_load_public_entries', 'dicm_timesheet_load_public_entries' );
 
 // Create table on plugin load
 add_action( 'init', 'dicm_create_timesheet_table' );

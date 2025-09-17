@@ -1,4 +1,7 @@
 // Frontend JavaScript for Divi Custom Modules
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import TimesheetTracker from './modules/TimesheetTracker/TimesheetTracker';
 
 // AWeber Form fixes for Safari
 if (typeof window !== 'undefined') {
@@ -67,44 +70,46 @@ if (typeof window !== 'undefined') {
     });
   });
 
-  // Import TimesheetTracker frontend functionality
-  document.addEventListener('DOMContentLoaded', function() {
-    // Initialize TimesheetTracker React components on frontend
-    const timesheetTrackers = document.querySelectorAll('.dicm-timesheet-tracker');
-    if (timesheetTrackers.length > 0) {
-      console.log('TimesheetTracker modules detected:', timesheetTrackers.length);
-      
-      // Import React and TimesheetTracker component for frontend initialization
-      import('./modules/TimesheetTracker/TimesheetTracker.jsx').then(({ default: TimesheetTracker }) => {
-        import('react').then(React => {
-          import('react-dom/client').then(ReactDOM => {
-            timesheetTrackers.forEach(function(container) {
-              const configData = container.getAttribute('data-config');
-              let config = {};
-              
-              try {
-                config = JSON.parse(configData || '{}');
-              } catch (e) {
-                console.error('Failed to parse TimesheetTracker config:', e);
-              }
-              
-              // Clear the static HTML content and mount React component
-              container.innerHTML = '<div class="timesheet-react-root"></div>';
-              const root = container.querySelector('.timesheet-react-root');
-              
-              // Create React root and render component
-              const reactRoot = ReactDOM.createRoot(root);
-              reactRoot.render(React.createElement(TimesheetTracker, { attrs: { config: JSON.stringify(config) } }));
-            });
-          });
-        });
-      }).catch(error => {
-        console.error('Failed to load TimesheetTracker component:', error);
-        // Fallback to basic functionality without React
-        initBasicTimesheetFunctionality(timesheetTrackers);
-      });
+// TimesheetTracker React Component Initialization
+// Initialize TimesheetTracker components when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  // Find all TimesheetTracker containers
+  const containers = document.querySelectorAll('.dicm-timesheet-tracker');
+  
+  containers.forEach(function(container) {
+    // Skip if already initialized
+    if (container.hasAttribute('data-initialized')) {
+      return;
     }
+    
+    // Get configuration from data attribute
+    const configData = container.getAttribute('data-config');
+    let config = {};
+    
+    try {
+      config = configData ? JSON.parse(configData) : {};
+    } catch (error) {
+      console.error('TimesheetTracker: Failed to parse config data:', error);
+      return;
+    }
+    
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Create React root and render component
+    const root = createRoot(container);
+    root.render(React.createElement(TimesheetTracker, {
+      attrs: {
+        config: JSON.stringify(config)
+      }
+    }));
+    
+    // Mark as initialized
+    container.setAttribute('data-initialized', 'true');
+    
+    console.log('TimesheetTracker: Component initialized successfully');
   });
+});
   
   // Fallback basic functionality for when React fails to load
   function initBasicTimesheetFunctionality(containers) {
@@ -201,3 +206,44 @@ if (typeof window !== 'undefined') {
     });
   }
 }
+
+// TimesheetTracker React Component Initialization
+// Initialize TimesheetTracker components when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  // Find all TimesheetTracker containers
+  const containers = document.querySelectorAll('.dicm-timesheet-tracker');
+  
+  containers.forEach(function(container) {
+    // Skip if already initialized
+    if (container.hasAttribute('data-initialized')) {
+      return;
+    }
+    
+    // Get configuration from data attribute
+    const configData = container.getAttribute('data-config');
+    let config = {};
+    
+    try {
+      config = configData ? JSON.parse(configData) : {};
+    } catch (error) {
+      console.error('TimesheetTracker: Failed to parse config data:', error);
+      return;
+    }
+    
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Create React root and render component
+    const root = createRoot(container);
+    root.render(React.createElement(TimesheetTracker, {
+      attrs: {
+        config: JSON.stringify(config)
+      }
+    }));
+    
+    // Mark as initialized
+    container.setAttribute('data-initialized', 'true');
+    
+    console.log('TimesheetTracker: Component initialized successfully');
+  });
+});

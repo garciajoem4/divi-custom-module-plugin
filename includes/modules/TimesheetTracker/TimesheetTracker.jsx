@@ -17,6 +17,7 @@ class TimesheetTracker extends Component {
 			totalAmount: 0,
 			loading: false,
 			error: null,
+			currentFilter: 'this_week', // For public view filtering
 			config: {
 				maxRows: config.maxRows || 10,
 				defaultHourlyRate: 15, // Fixed rate at $15
@@ -45,8 +46,8 @@ class TimesheetTracker extends Component {
 	componentDidMount() {
 		// Check if user is logged in
 		if (!this.state.config.isLoggedIn) {
-			// Load demo data for non-logged users
-			this.loadDemoData();
+			// Load live public data for non-logged users
+			this.loadPublicData();
 		} else {
 			// Load saved data from WordPress for logged users
 			this.loadTimesheetData();
@@ -267,6 +268,19 @@ class TimesheetTracker extends Component {
 		return (seconds / 3600).toFixed(this.state.config.decimalPlaces);
 	}
 
+	// Filter handler for public view
+	handleFilterChange = (filter) => {
+		this.setState({ 
+			currentFilter: filter,
+			loading: true 
+		});
+		
+		// For non-logged users, load public data with filter
+		if (!this.state.config.isLoggedIn) {
+			this.loadPublicData(filter);
+		}
+	}
+
 	// Demo Data for Non-Logged Users
 	loadDemoData = () => {
 		const demoRows = [
@@ -305,6 +319,70 @@ class TimesheetTracker extends Component {
 		this.setState({ rows: demoRows }, () => {
 			this.calculateTotals();
 		});
+	}
+
+	// Load public data from WordPress with filtering
+	loadPublicData = async (filter = null) => {
+		if (!this.state.config.ajaxUrl) {
+			console.error('TimesheetTracker: AJAX URL not configured');
+			return;
+		}
+
+		this.setState({ loading: true });
+
+		const currentFilter = filter || this.state.currentFilter;
+
+		const formData = new FormData();
+		formData.append('action', 'timesheet_load_public_entries');
+		formData.append('filter', currentFilter);
+
+		try {
+			const response = await fetch(this.state.config.ajaxUrl, {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				const publicRows = result.data.entries.map((entry, index) => ({
+					id: `public_${index}`,
+					date: entry.entry_date,
+					project: entry.project || '',
+					tasks: entry.tasks || '',
+					notes: entry.notes || '',
+					hours: entry.hours || '0',
+					rate: '15.00', // Fixed rate for display consistency
+					amount: (parseFloat(entry.hours || 0) * 15).toFixed(2)
+				}));
+
+				this.setState({ 
+					rows: publicRows,
+					loading: false,
+					currentFilter: currentFilter 
+				}, () => {
+					this.calculateTotals();
+				});
+			} else {
+				console.error('TimesheetTracker: Failed to load public data:', result.data);
+				// If no data, show empty table
+				this.setState({ 
+					rows: [],
+					loading: false 
+				}, () => {
+					this.calculateTotals();
+				});
+			}
+		} catch (error) {
+			console.error('TimesheetTracker: Error loading public data:', error);
+			// Fallback to empty table on error
+			this.setState({ 
+				rows: [],
+				loading: false 
+			}, () => {
+				this.calculateTotals();
+			});
+		}
 	}
 
 	// WordPress Data Persistence Functions
@@ -456,38 +534,67 @@ class TimesheetTracker extends Component {
 
 	// Export Functions
 	exportToCSV = () => {
-		const { rows, config } = this.state;
+		const { rows, config, currentFilter } = this.state;
+		const isViewOnly = config.viewOnly || !config.isLoggedIn;
 		
-		// CSV Headers
-		const headers = ['Date', 'Project', 'Tasks', 'Notes', 'Hours', 'Billable Rate', 'Billable Amount'];
+		// CSV Headers - adjust for public view
+		const headers = isViewOnly 
+			? ['Date', 'Project', 'Tasks', 'Notes', 'Hours']
+			: ['Date', 'Project', 'Tasks', 'Notes', 'Hours', 'Billable Rate', 'Billable Amount'];
 		
-		// CSV Content
+		// CSV Content - adjust for public view
 		const csvContent = [
 			headers.join(','),
-			...rows.map(row => [
-				row.date,
-				`"${row.project}"`,
-				`"${row.tasks}"`,
-				`"${row.notes}"`,
-				row.hours,
-				'$15.00',
-				`$${row.amount}`
-			].join(','))
+			...rows.map(row => {
+				const baseRow = [
+					row.date,
+					`"${row.project}"`,
+					`"${row.tasks}"`,
+					`"${row.notes}"`,
+					row.hours
+				];
+				
+				// Add financial columns only for logged users
+				if (!isViewOnly) {
+					baseRow.push('$15.00', `$${row.amount}`);
+				}
+				
+				return baseRow.join(',');
+			})
 		].join('\n');
 
 		// Add totals row
 		const totalHours = this.state.totalHours.toFixed(config.decimalPlaces);
-		const totalAmount = this.state.totalAmount.toFixed(config.decimalPlaces);
-		const totalsRow = `\n"TOTALS","","","",${totalHours},"","$${totalAmount}"`;
+		let totalsRow = `\n"TOTALS","","","",${totalHours}`;
+		
+		if (!isViewOnly) {
+			const totalAmount = this.state.totalAmount.toFixed(config.decimalPlaces);
+			totalsRow += `,"","$${totalAmount}"`;
+		}
 		
 		const finalCSV = csvContent + totalsRow;
+
+		// Generate filename with filter information for public view
+		let filename = 'timesheet';
+		
+		if (isViewOnly) {
+			const filterNames = {
+				'this_week': 'this-week',
+				'last_week': 'last-week',
+				'this_month': 'this-month',
+				'last_month': 'last-month'
+			};
+			filename += `_${filterNames[currentFilter] || 'filtered'}`;
+		}
+		
+		filename += `_${new Date().toISOString().split('T')[0]}.csv`;
 
 		// Create and download file
 		const blob = new Blob([finalCSV], { type: 'text/csv;charset=utf-8;' });
 		const link = document.createElement('a');
 		const url = URL.createObjectURL(blob);
 		link.setAttribute('href', url);
-		link.setAttribute('download', `timesheet_${new Date().toISOString().split('T')[0]}.csv`);
+		link.setAttribute('download', filename);
 		link.style.visibility = 'hidden';
 		document.body.appendChild(link);
 		link.click();
@@ -607,6 +714,15 @@ class TimesheetTracker extends Component {
 					</div>
 				)}
 
+				{isViewOnly && (
+					<div className="login-prompt">
+						<div className="login-message">
+							<h4>Public Time Tracker</h4>
+							<p>You're viewing live timesheet data. <a href={config.loginUrl} className="login-link">Log in</a> to track your own time entries.</p>
+						</div>
+					</div>
+				)}
+
 				{config.showTimer && (
 					<div className="timer-section">
 						<div className="timer-display">
@@ -642,6 +758,23 @@ class TimesheetTracker extends Component {
 
 				<div className="timesheet-container">
 					<div className="timesheet-controls">
+						{isViewOnly && (
+							<div className="filter-controls">
+								<label htmlFor="time-filter">Filter by:</label>
+								<select 
+									id="time-filter"
+									value={this.state.currentFilter} 
+									onChange={(e) => this.handleFilterChange(e.target.value)}
+									className="filter-dropdown"
+								>
+									<option value="this_week">This Week</option>
+									<option value="last_week">Last Week</option>
+									<option value="this_month">This Month</option>
+									<option value="last_month">Last Month</option>
+								</select>
+							</div>
+						)}
+						
 						{!isViewOnly && (
 							<>
 								<button 
@@ -683,9 +816,11 @@ class TimesheetTracker extends Component {
 							<span className="total-hours">
 								Total Hours: <strong>{this.state.totalHours.toFixed(config.decimalPlaces)}</strong>
 							</span>
-							<span className="total-amount">
-								Total Amount: <strong>${this.state.totalAmount.toFixed(config.decimalPlaces)}</strong>
-							</span>
+							{!isViewOnly && (
+								<span className="total-amount">
+									Total Amount: <strong>${this.state.totalAmount.toFixed(config.decimalPlaces)}</strong>
+								</span>
+							)}
 						</div>
 					</div>
 					
@@ -698,8 +833,8 @@ class TimesheetTracker extends Component {
 									<th>Tasks</th>
 									<th>Notes</th>
 									<th>Hours</th>
-									<th>Billable Rate</th>
-									<th>Billable Amount</th>
+									{!isViewOnly && <th>Billable Rate</th>}
+									{!isViewOnly && <th>Billable Amount</th>}
 									{!isViewOnly && <th>Actions</th>}
 								</tr>
 							</thead>
@@ -777,14 +912,18 @@ class TimesheetTracker extends Component {
 												/>
 											)}
 										</td>
-										<td>
-											<div className="fixed-rate-display">
-												$15.00
-											</div>
-										</td>
-										<td className="amount-cell">
-											${row.amount}
-										</td>
+										{!isViewOnly && (
+											<td>
+												<div className="fixed-rate-display">
+													$15.00
+												</div>
+											</td>
+										)}
+										{!isViewOnly && (
+											<td className="amount-cell">
+												${row.amount}
+											</td>
+										)}
 										{!isViewOnly && (
 											<td className="actions-cell">
 												{config.showTimer && (
