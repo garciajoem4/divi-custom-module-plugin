@@ -288,4 +288,10 @@ add_action( 'wp_ajax_nopriv_timesheet_load_public_entries', 'dicm_timesheet_load
 // Create table on plugin load
 add_action( 'init', 'dicm_create_timesheet_table' );
 
+// Track user login times for user details display
+function dicm_track_user_login( $user_login, $user ) {
+	update_user_meta( $user->ID, 'last_login', current_time( 'mysql' ) );
+}
+add_action( 'wp_login', 'dicm_track_user_login', 10, 2 );
+
 error_log('TimesheetTracker: Procedural AJAX handlers registered');

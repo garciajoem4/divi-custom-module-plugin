@@ -335,6 +335,19 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 
 		// Add login URL to config for React component
 		$config['loginUrl'] = wp_login_url( get_permalink() );
+		
+		// Add user details for display
+		if ($is_logged_in) {
+			$current_user = wp_get_current_user();
+			$last_login = get_user_meta($current_user_id, 'last_login', true);
+			
+			$config['userDetails'] = array(
+				'name' => $current_user->display_name,
+				'email' => $current_user->user_email,
+				'lastLogin' => $last_login ? date('M j, Y g:i A', strtotime($last_login)) : 'First time login'
+			);
+		}
+		
 		$config_json = wp_json_encode($config);
 
 		// Build minimal output - React will handle all content rendering

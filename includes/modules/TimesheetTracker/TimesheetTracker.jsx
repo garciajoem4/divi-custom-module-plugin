@@ -714,11 +714,20 @@ class TimesheetTracker extends Component {
 					</div>
 				)}
 
-				{isViewOnly && (
-					<div className="login-prompt">
-						<div className="login-message">
-							<h4>Public Time Tracker</h4>
-							<p>You're viewing live timesheet data. <a href={config.loginUrl} className="login-link">Log in</a> to track your own time entries.</p>
+				{/* User Details Display */}
+				{config.userDetails && isViewOnly && (
+					<div className="user-details">
+						<div className="user-info">
+							<h4>User Information</h4>
+							<div className="user-item">
+								<strong>Name:</strong> {config.userDetails.name}
+							</div>
+							<div className="user-item">
+								<strong>Email:</strong> {config.userDetails.email}
+							</div>
+							<div className="user-item">
+								<strong>Last logged in:</strong> {config.userDetails.lastLogin}
+							</div>
 						</div>
 					</div>
 				)}
