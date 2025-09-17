@@ -253,10 +253,25 @@ function dicm_timesheet_load_public_entries() {
 		$end_date 
 	) );
 	
+	// Get user details of contributors who have timesheet entries (for public transparency)
+	$contributors = $wpdb->get_results( 
+		"SELECT DISTINCT 
+			u.display_name as name,
+			u.user_email as email,
+			MAX(t.updated_at) as last_activity,
+			SUM(t.hours) as total_hours,
+			COUNT(t.id) as total_entries
+		FROM {$wpdb->users} u 
+		JOIN $table_name t ON u.ID = t.user_id 
+		GROUP BY u.ID, u.display_name, u.user_email 
+		ORDER BY last_activity DESC"
+	);
+	
 	if ( $entries ) {
-		error_log('TimesheetTracker: Found ' . count($entries) . ' public entries');
+		error_log('TimesheetTracker: Found ' . count($entries) . ' public entries and ' . count($contributors) . ' contributors');
 		wp_send_json_success( array( 
 			'entries' => $entries,
+			'contributors' => $contributors,
 			'filter' => $filter,
 			'date_range' => array(
 				'start' => $start_date,
@@ -267,6 +282,7 @@ function dicm_timesheet_load_public_entries() {
 		error_log('TimesheetTracker: No public entries found');
 		wp_send_json_success( array( 
 			'entries' => array(),
+			'contributors' => $contributors || array(),
 			'filter' => $filter,
 			'date_range' => array(
 				'start' => $start_date,

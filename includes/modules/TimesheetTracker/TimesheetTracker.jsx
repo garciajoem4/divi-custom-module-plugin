@@ -8,11 +8,6 @@ class TimesheetTracker extends Component {
 		// Parse configuration from props
 		const config = this.props.attrs?.config ? JSON.parse(this.props.attrs.config) : {};
 		
-		// Debug: Log the config to see what's being passed from PHP
-		console.log('TimesheetTracker config:', config);
-		console.log('User details in config:', config.userDetails);
-		console.log('Is logged in:', config.isLoggedIn);
-		
 		this.state = {
 			rows: [],
 			timerRunning: false,
@@ -23,6 +18,7 @@ class TimesheetTracker extends Component {
 			loading: false,
 			error: null,
 			currentFilter: 'this_week', // For public view filtering
+			contributors: [], // List of users who have used the timesheet tracker
 			config: {
 				maxRows: config.maxRows || 10,
 				defaultHourlyRate: 15, // Fixed rate at $15
@@ -362,8 +358,12 @@ class TimesheetTracker extends Component {
 					amount: (parseFloat(entry.hours || 0) * 15).toFixed(2)
 				}));
 
+				// Process contributor data
+				const contributors = result.data.contributors || [];
+
 				this.setState({ 
 					rows: publicRows,
+					contributors: contributors,
 					loading: false,
 					currentFilter: currentFilter 
 				}, () => {
@@ -374,6 +374,7 @@ class TimesheetTracker extends Component {
 				// If no data, show empty table
 				this.setState({ 
 					rows: [],
+					contributors: [],
 					loading: false 
 				}, () => {
 					this.calculateTotals();
@@ -384,6 +385,7 @@ class TimesheetTracker extends Component {
 			// Fallback to empty table on error
 			this.setState({ 
 				rows: [],
+				contributors: [],
 				loading: false 
 			}, () => {
 				this.calculateTotals();
@@ -767,6 +769,34 @@ class TimesheetTracker extends Component {
 									<span className="btn-text">Reset</span>
 								</button>
 							</div>
+						</div>
+					</div>
+				)}
+
+				{/* Contributors Display - Show in public view */}
+				{isViewOnly && this.state.contributors.length > 0 && (
+					<div className="contributors-section">
+						<div className="contributors-header">
+							<h4>User Details</h4>
+						</div>
+						<div className="contributors-list">
+							{this.state.contributors.map((contributor, index) => (
+								<div key={index} className="contributor-item">
+									<div className="contributor-name">
+										<strong>{contributor.name}</strong>
+									</div>
+									<div className="contributor-email">
+										<strong>Email:</strong> {contributor.email}
+									</div>
+									<div className="contributor-stats">
+										<span className="total-hours">{parseFloat(contributor.total_hours).toFixed(2)} hours</span>
+										<span className="total-entries">{contributor.total_entries} entries</span>
+									</div>
+									<div className="last-activity">
+										Last active: {new Date(contributor.last_activity).toLocaleString()}
+									</div>
+								</div>
+							))}
 						</div>
 					</div>
 				)}

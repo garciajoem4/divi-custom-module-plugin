@@ -1100,6 +1100,78 @@
 	font-weight: 500;
 }
 
+/* Contributors Section - Public View */
+.contributors-section {
+	background: #f8f9fa;
+	border: 1px solid #e9ecef;
+	border-radius: 8px;
+	padding: 20px;
+	margin-bottom: 20px;
+}
+
+.contributors-section .contributors-header h4 {
+	margin: 0 0 5px 0;
+	color: #495057;
+	font-weight: 600;
+}
+
+.contributors-section .contributors-header p {
+	margin: 0 0 15px 0;
+	color: #6c757d;
+	font-size: 14px;
+}
+
+.contributors-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 15px;
+}
+
+.contributor-item {
+	background: #ffffff;
+	border: 1px solid #dee2e6;
+	border-radius: 6px;
+	padding: 15px;
+}
+
+.contributor-item .contributor-name {
+	margin-bottom: 8px;
+}
+
+.contributor-item .contributor-name strong {
+	color: #343a40;
+	font-weight: 600;
+	font-size: 16px;
+}
+
+.contributor-item .contributor-email {
+	margin-bottom: 8px;
+	font-size: 14px;
+	color: #6c757d;
+}
+
+.contributor-item .contributor-email strong {
+	color: #495057;
+	font-weight: 500;
+}
+
+.contributor-item .contributor-stats {
+	display: flex;
+	gap: 15px;
+	margin-bottom: 8px;
+}
+
+.contributor-item .contributor-stats span {
+	color: #495057;
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.contributor-item .last-activity {
+	color: #6c757d;
+	font-size: 12px;
+}
+
 /* Fixed Rate Display */
 .fixed-rate-display {
 	text-align: center;
