@@ -8,6 +8,11 @@ class TimesheetTracker extends Component {
 		// Parse configuration from props
 		const config = this.props.attrs?.config ? JSON.parse(this.props.attrs.config) : {};
 		
+		// Debug: Log the config to see what's being passed from PHP
+		console.log('TimesheetTracker config:', config);
+		console.log('User details in config:', config.userDetails);
+		console.log('Is logged in:', config.isLoggedIn);
+		
 		this.state = {
 			rows: [],
 			timerRunning: false,
@@ -36,6 +41,7 @@ class TimesheetTracker extends Component {
 				isLoggedIn: config.isLoggedIn || false,
 				ajaxUrl: config.ajaxUrl || '',
 				nonce: config.nonce || '',
+				userDetails: config.userDetails || null,
 			}
 		};
 
@@ -715,18 +721,18 @@ class TimesheetTracker extends Component {
 				)}
 
 				{/* User Details Display */}
-				{config.userDetails && isViewOnly && (
+				{this.state.config.userDetails && (
 					<div className="user-details">
 						<div className="user-info">
 							<h4>User Information</h4>
 							<div className="user-item">
-								<strong>Name:</strong> {config.userDetails.name}
+								<strong>Name:</strong> {this.state.config.userDetails.name}
 							</div>
 							<div className="user-item">
-								<strong>Email:</strong> {config.userDetails.email}
+								<strong>Email:</strong> {this.state.config.userDetails.email}
 							</div>
 							<div className="user-item">
-								<strong>Last logged in:</strong> {config.userDetails.lastLogin}
+								<strong>Last logged in:</strong> {this.state.config.userDetails.lastLogin}
 							</div>
 						</div>
 					</div>
