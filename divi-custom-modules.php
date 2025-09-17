@@ -37,3 +37,175 @@ function dicm_initialize_extension() {
 }
 add_action( 'divi_extensions_init', 'dicm_initialize_extension' );
 endif;
+
+// Simple AJAX handlers for TimesheetTracker (procedural approach)
+function dicm_timesheet_save_entry() {
+	error_log('TimesheetTracker: dicm_timesheet_save_entry called');
+	
+	// Verify user is logged in
+	if ( ! is_user_logged_in() ) {
+		error_log('TimesheetTracker: User not logged in');
+		wp_send_json_error( array( 'message' => 'User not logged in' ) );
+	}
+	
+	// Debug nonce
+	if ( ! isset( $_POST['nonce'] ) ) {
+		error_log('TimesheetTracker: No nonce in POST data');
+		wp_send_json_error( array( 'message' => 'No nonce provided' ) );
+	}
+	
+	$nonce_check = wp_verify_nonce( $_POST['nonce'], 'timesheet_tracker_nonce' );
+	error_log('TimesheetTracker: Nonce check result: ' . ($nonce_check ? 'PASS' : 'FAIL'));
+	
+	if ( ! $nonce_check ) {
+		error_log('TimesheetTracker: Nonce verification failed');
+		wp_send_json_error( array( 'message' => 'Nonce verification failed' ) );
+	}
+	
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'timesheet_entries';
+	$current_user_id = get_current_user_id();
+
+	// Create table if it doesn't exist
+	dicm_create_timesheet_table();
+
+	// Sanitize input data
+	$entry_id = isset( $_POST['entry_id'] ) ? intval( $_POST['entry_id'] ) : 0;
+	$entry_date = sanitize_text_field( $_POST['entry_date'] );
+	$project = sanitize_text_field( $_POST['project'] );
+	$tasks = sanitize_textarea_field( $_POST['tasks'] );
+	$notes = sanitize_textarea_field( $_POST['notes'] );
+	$hours = floatval( $_POST['hours'] );
+	$billable_rate = floatval( $_POST['billable_rate'] );
+	$billable_amount = $hours * $billable_rate;
+
+	$data = array(
+		'user_id' => $current_user_id,
+		'entry_date' => $entry_date,
+		'project' => $project,
+		'tasks' => $tasks,
+		'notes' => $notes,
+		'hours' => $hours,
+		'billable_rate' => $billable_rate,
+		'billable_amount' => $billable_amount,
+	);
+
+	if ( $entry_id > 0 ) {
+		// Update existing entry
+		$existing = $wpdb->get_row( $wpdb->prepare( 
+			"SELECT user_id FROM $table_name WHERE id = %d", 
+			$entry_id 
+		) );
+		
+		if ( $existing && $existing->user_id == $current_user_id ) {
+			$result = $wpdb->update( $table_name, $data, array( 'id' => $entry_id ) );
+			wp_send_json_success( array( 
+				'entry_id' => $entry_id,
+				'message' => 'Entry updated successfully' 
+			) );
+		} else {
+			wp_send_json_error( array( 'message' => 'Entry not found or access denied' ) );
+		}
+	} else {
+		// Create new entry
+		$result = $wpdb->insert( $table_name, $data );
+		if ( $result !== false ) {
+			wp_send_json_success( array( 
+				'entry_id' => $wpdb->insert_id,
+				'message' => 'Entry saved successfully' 
+			) );
+		} else {
+			wp_send_json_error( array( 'message' => 'Failed to save entry. Database error: ' . $wpdb->last_error ) );
+		}
+	}
+}
+
+function dicm_timesheet_load_entries() {
+	error_log('TimesheetTracker: dicm_timesheet_load_entries called');
+	
+	if ( ! is_user_logged_in() || ! wp_verify_nonce( $_POST['nonce'], 'timesheet_tracker_nonce' ) ) {
+		wp_send_json_error( array( 'message' => 'Access denied' ) );
+	}
+
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'timesheet_entries';
+	$current_user_id = get_current_user_id();
+
+	$entries = $wpdb->get_results( $wpdb->prepare( 
+		"SELECT * FROM $table_name WHERE user_id = %d ORDER BY entry_date DESC, created_at DESC",
+		$current_user_id
+	) );
+
+	wp_send_json_success( array( 'entries' => $entries ) );
+}
+
+function dicm_timesheet_delete_entry() {
+	error_log('TimesheetTracker: dicm_timesheet_delete_entry called');
+	
+	if ( ! is_user_logged_in() || ! wp_verify_nonce( $_POST['nonce'], 'timesheet_tracker_nonce' ) ) {
+		wp_send_json_error( array( 'message' => 'Access denied' ) );
+	}
+
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'timesheet_entries';
+	$current_user_id = get_current_user_id();
+	$entry_id = intval( $_POST['entry_id'] );
+
+	$existing = $wpdb->get_row( $wpdb->prepare( 
+		"SELECT user_id FROM $table_name WHERE id = %d", 
+		$entry_id 
+	) );
+
+	if ( $existing && $existing->user_id == $current_user_id ) {
+		$result = $wpdb->delete( $table_name, array( 'id' => $entry_id ) );
+		if ( $result !== false ) {
+			wp_send_json_success( array( 'message' => 'Entry deleted successfully' ) );
+		} else {
+			wp_send_json_error( array( 'message' => 'Failed to delete entry' ) );
+		}
+	} else {
+		wp_send_json_error( array( 'message' => 'Entry not found or access denied' ) );
+	}
+}
+
+function dicm_create_timesheet_table() {
+	global $wpdb;
+	
+	$table_name = $wpdb->prefix . 'timesheet_entries';
+	
+	if ( $wpdb->get_var( "SHOW TABLES LIKE '$table_name'" ) != $table_name ) {
+		$charset_collate = $wpdb->get_charset_collate();
+		
+		$sql = "CREATE TABLE $table_name (
+			id int(11) NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			entry_date date NOT NULL,
+			project varchar(255) DEFAULT '',
+			tasks text DEFAULT '',
+			notes text DEFAULT '',
+			hours decimal(8,2) DEFAULT 0.00,
+			billable_rate decimal(10,2) DEFAULT 0.00,
+			billable_amount decimal(12,2) DEFAULT 0.00,
+			timer_seconds int DEFAULT 0,
+			created_at datetime DEFAULT CURRENT_TIMESTAMP,
+			updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			KEY user_date (user_id, entry_date),
+			KEY user_id (user_id)
+		) $charset_collate;";
+		
+		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+		dbDelta( $sql );
+		error_log('TimesheetTracker: Database table created');
+	}
+}
+
+// Register AJAX handlers
+add_action( 'wp_ajax_timesheet_save_entry', 'dicm_timesheet_save_entry' );
+add_action( 'wp_ajax_timesheet_load_entries', 'dicm_timesheet_load_entries' );
+add_action( 'wp_ajax_timesheet_delete_entry', 'dicm_timesheet_delete_entry' );
+
+// Create table on plugin load
+add_action( 'init', 'dicm_create_timesheet_table' );
+
+error_log('TimesheetTracker: Procedural AJAX handlers registered');
