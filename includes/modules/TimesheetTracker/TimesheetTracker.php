@@ -150,9 +150,9 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 			'default_hourly_rate' => array(
 				'label' => esc_html__( 'Default Hourly Rate', 'dicm-divi-custom-modules' ),
 				'type' => 'text',
-				'default' => '50.00',
+				'default' => '15.00',
 				'toggle_slug' => 'default_values',
-				'description' => esc_html__( 'Set the default hourly billing rate in USD.', 'dicm-divi-custom-modules' ),
+				'description' => esc_html__( 'Set the default hourly billing rate in USD (fixed at $15).', 'dicm-divi-custom-modules' ),
 			),
 			'default_project' => array(
 				'label' => esc_html__( 'Default Project Name', 'dicm-divi-custom-modules' ),
@@ -292,18 +292,8 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 	}
 
 	public function render( $attrs, $content, $render_slug ) {
-		// Check if user is logged in
-		if ( ! is_user_logged_in() ) {
-			return '<div class="dicm-timesheet-tracker login-required">
-				<div class="login-message">
-					<h3>Login Required</h3>
-					<p>You must be logged in to use the Timesheet Tracker.</p>
-					<a href="' . wp_login_url( get_permalink() ) . '" class="login-link">Log In</a>
-				</div>
-			</div>';
-		}
-
-		$current_user_id = get_current_user_id();
+		$is_logged_in = is_user_logged_in();
+		$current_user_id = $is_logged_in ? get_current_user_id() : 0;
 		$table_title = $this->props['table_title'];
 		$show_timer = $this->props['show_timer'];
 		$max_rows = $this->props['max_rows'];
@@ -324,20 +314,21 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 		// Module configuration for JavaScript
 		$config = array(
 			'maxRows' => intval($max_rows),
-			'defaultHourlyRate' => floatval($default_hourly_rate),
+			'defaultHourlyRate' => 15, // Fixed at $15
 			'defaultProject' => $default_project,
 			'presetTasks' => $preset_tasks_array,
 			'currencySymbol' => '$', // USD currency
 			'decimalPlaces' => intval($decimal_places),
 			'timeFormat' => $time_format,
-			'saveData' => $save_data === 'on',
+			'saveData' => $save_data === 'on' && $is_logged_in, // Only save if logged in
 			'autoSaveInterval' => intval($auto_save_interval) * 1000, // Convert to milliseconds
-			'timerAutoStart' => $timer_auto_start === 'on',
-			'timerSound' => $timer_sound === 'on',
-			'showTimer' => $show_timer === 'on',
+			'timerAutoStart' => $timer_auto_start === 'on' && $is_logged_in, // Only for logged users
+			'timerSound' => $timer_sound === 'on' && $is_logged_in, // Only for logged users
+			'showTimer' => $show_timer === 'on' && $is_logged_in, // Only show timer to logged users
 			// WordPress-specific configuration
 			'userId' => $current_user_id,
-			'isLoggedIn' => true,
+			'isLoggedIn' => $is_logged_in,
+			'viewOnly' => !$is_logged_in, // Add view-only flag
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 			'nonce' => wp_create_nonce( 'timesheet_tracker_nonce' ),
 		);
@@ -350,6 +341,17 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 			esc_attr($config_json)
 		);
 
+		// Show login prompt for non-logged users
+		if (!$is_logged_in) {
+			$output .= '
+				<div class="login-prompt">
+					<div class="login-message">
+						<h4>Preview Mode - Login to Track Your Time</h4>
+						<p>You\'re viewing a demo of the Timesheet Tracker. <a href="' . wp_login_url( get_permalink() ) . '" class="login-link">Log in</a> to track your own time entries.</p>
+					</div>
+				</div>';
+		}
+
 		if (!empty($table_title)) {
 			$output .= sprintf(
 				'<div class="timesheet-title">
@@ -359,7 +361,7 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 			);
 		}
 
-		if ($show_timer === 'on') {
+		if ($show_timer === 'on' && $is_logged_in) {
 			$output .= '
 				<div class="timer-section">
 					<div class="timer-display">

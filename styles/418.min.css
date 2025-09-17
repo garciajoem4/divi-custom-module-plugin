@@ -1,7 +1,10 @@
+@import url(https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap);
+/* Import Poppins font */
+
 /* TimesheetTracker Module Styles */
 
 .dicm-timesheet-tracker {
-	font-family: inherit;
+	font-family: 'Poppins', sans-serif;
 	max-width: 100%;
 	margin: 0 auto;
 	position: relative;
@@ -186,6 +189,44 @@
 	gap: 15px;
 }
 
+/* Export Controls */
+.export-controls {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.export-btn,
+.invoice-btn {
+	background: linear-gradient(135deg, #28a745, #20c997);
+	color: white;
+	border: none;
+	padding: 10px 20px;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 500;
+	transition: all 0.3s ease;
+	box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+}
+
+.export-btn:hover,
+.invoice-btn:hover {
+	background: linear-gradient(135deg, #218838, #1eb88a);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.invoice-btn {
+	background: linear-gradient(135deg, #6f42c1, #8e44ad);
+	box-shadow: 0 2px 8px rgba(111, 66, 193, 0.2);
+}
+
+.invoice-btn:hover {
+	background: linear-gradient(135deg, #5a2d91, #7d3c98);
+	box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+}
+
 .add-row-btn,
 .clear-all-btn {
 	background: linear-gradient(135deg, #007cba, #005a8b);
@@ -255,15 +296,16 @@
 
 /* Table Header */
 .timesheet-header th {
-	background: linear-gradient(135deg, #495057, #343a40);
-	color: white;
+	background: #007cba !important;
+	color: white !important;
 	padding: 15px 10px;
 	text-align: left;
-	font-weight: 600;
+	font-weight: 400 !important;
 	font-size: 14px;
 	text-transform: uppercase;
+	white-space: nowrap;
 	letter-spacing: 0.5px;
-	border-bottom: 2px solid #007cba;
+	border-bottom: 0 !important;
 	position: sticky;
 	top: 0;
 	z-index: 10;
@@ -313,6 +355,63 @@
 	resize: vertical;
 	min-height: 38px;
 	max-height: 100px;
+}
+
+/* Login Prompt for Non-Logged Users */
+.login-prompt {
+	background: #e3f2fd;
+	border: 1px solid #bbdefb;
+	border-radius: 8px;
+	padding: 15px;
+	margin-bottom: 20px;
+	text-align: center;
+}
+
+.login-prompt .login-message h4 {
+	margin: 0 0 10px 0;
+	color: #1976d2;
+}
+
+.login-prompt .login-message p {
+	margin: 0;
+	color: #424242;
+}
+
+.login-prompt .login-link {
+	color: #1976d2;
+	text-decoration: none;
+	font-weight: 600;
+}
+
+.login-prompt .login-link:hover {
+	text-decoration: underline;
+}
+
+/* Fixed Rate Display */
+.fixed-rate-display {
+	text-align: center;
+	font-weight: 600;
+	color: #007cba;
+	padding: 8px;
+	background-color: #f0f8ff;
+	border-radius: 4px;
+	font-family: 'Courier New', monospace;
+}
+
+/* Read-only Field Display */
+.readonly-field {
+	padding: 8px;
+	color: #495057;
+	font-size: 14px;
+	min-height: 22px;
+	display: flex;
+	align-items: center;
+}
+
+.readonly-field.hours-display {
+	text-align: center;
+	font-family: 'Courier New', monospace;
+	font-weight: 600;
 }
 
 /* Amount Cell */
@@ -438,6 +537,10 @@
 		gap: 10px;
 	}
 	
+	.export-controls {
+		justify-content: center;
+	}
+	
 	.total-summary {
 		justify-content: center;
 		text-align: center;
@@ -487,9 +590,21 @@
 	}
 	
 	.add-row-btn,
-	.clear-all-btn {
+	.clear-all-btn,
+	.export-btn,
+	.invoice-btn {
 		padding: 8px 16px;
 		font-size: 13px;
+	}
+	
+	.export-controls {
+		flex-direction: column;
+		width: 100%;
+	}
+	
+	.export-btn,
+	.invoice-btn {
+		width: 100%;
 	}
 	
 	.total-summary {
