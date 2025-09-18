@@ -783,56 +783,59 @@ class TimesheetTracker extends Component {
 					</div>
 				)}
 
-				{/* User Details Display */}
-				{this.state.config.userDetails && (
-					<div className="user-details">
-						<div className="user-info">
-							<h4>User Information</h4>
-							<div className="user-item">
-								<strong>Name:</strong> {this.state.config.userDetails.name}
-							</div>
-							<div className="user-item">
-								<strong>Email:</strong> {this.state.config.userDetails.email}
-							</div>
-							<div className="user-item">
-								<strong>Last logged in:</strong> {this.state.config.userDetails.lastLogin}
+				{/* User Details and Timer Row */}
+				<div className="info-timer-row">
+					{/* User Details Display */}
+					{this.state.config.userDetails && (
+						<div className="user-details">
+							<div className="user-info">
+								<h4>User Information</h4>
+								<div className="user-item">
+									<strong>Name:</strong> {this.state.config.userDetails.name}
+								</div>
+								<div className="user-item">
+									<strong>Email:</strong> {this.state.config.userDetails.email}
+								</div>
+								<div className="user-item">
+									<strong>Last logged in:</strong> {this.state.config.userDetails.lastLogin}
+								</div>
 							</div>
 						</div>
-					</div>
-				)}
+					)}
 
-				{config.showTimer && (
-					<div className="timer-section">
-						<div className="timer-display">
-							<span className="timer-time">
-								{this.formatTimeDisplay(this.state.timerSeconds)}
-							</span>
-							<div className="timer-controls">
-								{!this.state.timerRunning ? (
+					{config.showTimer && (
+						<div className="timer-section">
+							<div className="timer-display">
+								<span className="timer-time">
+									{this.formatTimeDisplay(this.state.timerSeconds)}
+								</span>
+								<div className="timer-controls">
+									{!this.state.timerRunning ? (
+										<button 
+											className="timer-btn start-btn" 
+											onClick={() => this.startTimer()}
+										>
+											<span className="btn-text">Start</span>
+										</button>
+									) : (
+										<button 
+											className="timer-btn stop-btn"
+											onClick={this.stopTimer}
+										>
+											<span className="btn-text">Stop</span>
+										</button>
+									)}
 									<button 
-										className="timer-btn start-btn" 
-										onClick={() => this.startTimer()}
+										className="timer-btn reset-btn"
+										onClick={this.resetTimer}
 									>
-										<span className="btn-text">Start</span>
+										<span className="btn-text">Reset</span>
 									</button>
-								) : (
-									<button 
-										className="timer-btn stop-btn"
-										onClick={this.stopTimer}
-									>
-										<span className="btn-text">Stop</span>
-									</button>
-								)}
-								<button 
-									className="timer-btn reset-btn"
-									onClick={this.resetTimer}
-								>
-									<span className="btn-text">Reset</span>
-								</button>
+								</div>
 							</div>
 						</div>
-					</div>
-				)}
+					)}
+				</div>
 
 				{/* Contributors Display - Show in public view */}
 				{isViewOnly && this.state.contributors.length > 0 && (
