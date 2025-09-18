@@ -1,11 +1,11 @@
 <?php
 /*
 Plugin Name: Divi Custom Modules
-Plugin URI:  https://mdmventures.com/
-Description: Plugin for MDM Divi custom modules
+Plugin URI:  https://garciajoemari.com/
+Description: Plugin for Divi custom modules
 Version:     1.0.0
-Author:      MDM - Jo Garcia
-Author URI:  https://mdmventures.com/
+Author:      Jo Garcia
+Author URI:  https://garciajoemari.com/
 License:     GPL2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: dicm-divi-custom-modules
