@@ -131,9 +131,25 @@ function dicm_timesheet_load_entries() {
 	$table_name = $wpdb->prefix . 'timesheet_entries';
 	$current_user_id = get_current_user_id();
 
+	// Get optional date range parameters for filtering
+	$start_date = sanitize_text_field( $_POST['start_date'] ?? '' );
+	$end_date = sanitize_text_field( $_POST['end_date'] ?? '' );
+
+	$where_clause = "WHERE user_id = %d";
+	$params = array( $current_user_id );
+
+	if ( $start_date ) {
+		$where_clause .= " AND entry_date >= %s";
+		$params[] = $start_date;
+	}
+	if ( $end_date ) {
+		$where_clause .= " AND entry_date <= %s";
+		$params[] = $end_date;
+	}
+
 	$entries = $wpdb->get_results( $wpdb->prepare( 
-		"SELECT * FROM $table_name WHERE user_id = %d ORDER BY entry_date DESC, created_at DESC",
-		$current_user_id
+		"SELECT * FROM $table_name $where_clause ORDER BY entry_date DESC, created_at DESC",
+		$params
 	) );
 
 	wp_send_json_success( array( 'entries' => $entries ) );
@@ -206,14 +222,22 @@ function dicm_timesheet_load_public_entries() {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'timesheet_entries';
 	
-	// Get filter parameter
+	// Get filter parameter and custom date ranges
 	$filter = sanitize_text_field( $_POST['filter'] ?? 'this_week' );
+	$custom_start_date = sanitize_text_field( $_POST['start_date'] ?? '' );
+	$custom_end_date = sanitize_text_field( $_POST['end_date'] ?? '' );
 	
 	// Calculate date ranges based on filter
 	$start_date = '';
 	$end_date = '';
 	
-	switch( $filter ) {
+	// Handle custom date range
+	if ( $filter === 'custom' && $custom_start_date && $custom_end_date ) {
+		$start_date = $custom_start_date;
+		$end_date = $custom_end_date;
+	} else {
+		// Handle predefined filters
+		switch( $filter ) {
 		case 'this_week':
 			$start_date = date('Y-m-d', strtotime('monday this week'));
 			$end_date = date('Y-m-d', strtotime('sunday this week'));
@@ -234,6 +258,7 @@ function dicm_timesheet_load_public_entries() {
 			// Default to this week
 			$start_date = date('Y-m-d', strtotime('monday this week'));
 			$end_date = date('Y-m-d', strtotime('sunday this week'));
+		}
 	}
 	
 	error_log("TimesheetTracker: Loading public entries from $start_date to $end_date");

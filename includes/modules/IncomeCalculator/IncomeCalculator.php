@@ -589,6 +589,7 @@ class DICM_IncomeCalculator extends ET_Builder_Module {
 						// Enhanced input event handler with auto-clamping
 						input.addEventListener("input", function() {
 							setTimeout(() => {
+								this.disabled = true; // Disable input for 1.7 seconds
 								const ourShare = parseInt(this.dataset.ourShare);
 								const fee = parseFloat(this.dataset.fee);
 								const row = this.dataset.row;
@@ -633,6 +634,9 @@ class DICM_IncomeCalculator extends ET_Builder_Module {
 								if (warning) {
 									warning.style.display = "none";
 								}
+								
+								// Re-enable input after processing
+								setTimeout(() => this.disabled = false, 1700);
 							}, 1700);
 						});
 						

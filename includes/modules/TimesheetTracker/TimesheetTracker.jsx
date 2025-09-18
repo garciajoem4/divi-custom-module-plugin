@@ -18,6 +18,8 @@ class TimesheetTracker extends Component {
 			loading: false,
 			error: null,
 			currentFilter: 'this_week', // For public view filtering
+			startDate: '', // Custom start date for filtering
+			endDate: '', // Custom end date for filtering
 			contributors: [], // List of users who have used the timesheet tracker
 			config: {
 				maxRows: config.maxRows || 10,
@@ -274,12 +276,55 @@ class TimesheetTracker extends Component {
 	handleFilterChange = (filter) => {
 		this.setState({ 
 			currentFilter: filter,
-			loading: true 
+			loading: filter !== 'custom' // Only show loading for non-custom filters
 		});
 		
-		// For non-logged users, load public data with filter
+		// Only load data immediately for non-custom filters
+		// For custom filter, wait for user to select dates
+		if (filter !== 'custom') {
+			if (!this.state.config.isLoggedIn) {
+				this.loadPublicData(filter);
+			} else {
+				this.loadTimesheetData(filter);
+			}
+		} else {
+			// For custom filter, clear loading and wait for date selection
+			this.setState({ loading: false });
+		}
+	}
+
+	// Date range handlers
+	handleStartDateChange = (date) => {
+		this.setState({ startDate: date }, () => {
+			// Auto-apply filter if both dates are set and filter is custom
+			if (this.state.currentFilter === 'custom' && this.state.endDate && date) {
+				this.applyCustomDateFilter(date, this.state.endDate);
+			}
+		});
+	}
+
+	handleEndDateChange = (date) => {
+		this.setState({ endDate: date }, () => {
+			// Auto-apply filter if both dates are set and filter is custom
+			if (this.state.currentFilter === 'custom' && this.state.startDate && date) {
+				this.applyCustomDateFilter(this.state.startDate, date);
+			}
+		});
+	}
+
+	applyCustomDateFilter = (startDate, endDate) => {
+		// Validate date range
+		if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+			console.warn('TimesheetTracker: Start date cannot be after end date');
+			return;
+		}
+
+		this.setState({ loading: true });
+		
 		if (!this.state.config.isLoggedIn) {
-			this.loadPublicData(filter);
+			this.loadPublicData('custom', startDate, endDate);
+		} else {
+			this.loadTimesheetData('custom', startDate, endDate);
 		}
 	}
 
@@ -324,7 +369,7 @@ class TimesheetTracker extends Component {
 	}
 
 	// Load public data from WordPress with filtering
-	loadPublicData = async (filter = null) => {
+	loadPublicData = async (filter = null, startDate = null, endDate = null) => {
 		if (!this.state.config.ajaxUrl) {
 			console.error('TimesheetTracker: AJAX URL not configured');
 			return;
@@ -337,6 +382,12 @@ class TimesheetTracker extends Component {
 		const formData = new FormData();
 		formData.append('action', 'timesheet_load_public_entries');
 		formData.append('filter', currentFilter);
+
+		// Add custom date range if provided
+		if (currentFilter === 'custom' && startDate && endDate) {
+			formData.append('start_date', startDate);
+			formData.append('end_date', endDate);
+		}
 
 		try {
 			const response = await fetch(this.state.config.ajaxUrl, {
@@ -443,7 +494,7 @@ class TimesheetTracker extends Component {
 		}
 	}
 
-	loadTimesheetData = async () => {
+	loadTimesheetData = async (filter = null, startDate = null, endDate = null) => {
 		if (!this.state.config.saveData || !this.state.config.isLoggedIn) return;
 
 		this.setState({ loading: true });
@@ -451,6 +502,12 @@ class TimesheetTracker extends Component {
 		const formData = new FormData();
 		formData.append('action', 'timesheet_load_entries');
 		formData.append('nonce', this.state.config.nonce);
+
+		// Add custom date range if provided
+		if (filter === 'custom' && startDate && endDate) {
+			formData.append('start_date', startDate);
+			formData.append('end_date', endDate);
+		}
 
 		try {
 			const response = await fetch(this.state.config.ajaxUrl, {
@@ -582,16 +639,20 @@ class TimesheetTracker extends Component {
 		
 		const finalCSV = csvContent + totalsRow;
 
-		// Generate filename with filter information for public view
+		// Generate filename with filter information
 		let filename = 'timesheet';
 		
-		if (isViewOnly) {
-			const filterNames = {
-				'this_week': 'this-week',
-				'last_week': 'last-week',
-				'this_month': 'this-month',
-				'last_month': 'last-month'
-			};
+		const filterNames = {
+			'this_week': 'this-week',
+			'last_week': 'last-week',
+			'this_month': 'this-month',
+			'last_month': 'last-month',
+			'custom': 'custom-range'
+		};
+		
+		if (currentFilter === 'custom' && this.state.startDate && this.state.endDate) {
+			filename += `_${this.state.startDate}_to_${this.state.endDate}`;
+		} else {
 			filename += `_${filterNames[currentFilter] || 'filtered'}`;
 		}
 		
@@ -786,7 +847,7 @@ class TimesheetTracker extends Component {
 										<strong>{contributor.name}</strong>
 									</div>
 									<div className="contributor-email">
-										<strong>Email:</strong> {contributor.email}
+										{contributor.email}
 									</div>
 									<div className="contributor-stats">
 										<span className="total-hours">{parseFloat(contributor.total_hours).toFixed(2)} hours</span>
@@ -803,7 +864,7 @@ class TimesheetTracker extends Component {
 
 				<div className="timesheet-container">
 					<div className="timesheet-controls">
-						{isViewOnly && (
+						{(isViewOnly || config.isLoggedIn) && (
 							<div className="filter-controls">
 								<label htmlFor="time-filter">Filter by:</label>
 								<select 
@@ -816,7 +877,41 @@ class TimesheetTracker extends Component {
 									<option value="last_week">Last Week</option>
 									<option value="this_month">This Month</option>
 									<option value="last_month">Last Month</option>
+									<option value="custom">Custom Date Range</option>
 								</select>
+
+								{this.state.currentFilter === 'custom' && (
+									<div className="custom-date-controls">
+										<div className="date-input-group">
+											<label htmlFor="start-date">From:</label>
+											<input
+												type="date"
+												id="start-date"
+												value={this.state.startDate}
+												onChange={(e) => this.handleStartDateChange(e.target.value)}
+												className="date-input"
+											/>
+										</div>
+										<div className="date-input-group">
+											<label htmlFor="end-date">To:</label>
+											<input
+												type="date"
+												id="end-date"
+												value={this.state.endDate}
+												onChange={(e) => this.handleEndDateChange(e.target.value)}
+												className="date-input"
+											/>
+										</div>
+										<button
+											className="apply-filter-btn"
+											onClick={() => this.applyCustomDateFilter(this.state.startDate, this.state.endDate)}
+											disabled={!this.state.startDate || !this.state.endDate || loading}
+											title="Apply custom date filter"
+										>
+											Apply Filter
+										</button>
+									</div>
+								)}
 							</div>
 						)}
 						

@@ -12,11 +12,17 @@ class IncomeCalculator extends Component {
     super(props);
     this.state = {
       transactionInputs: [0, 0, 0, 0, 0],
-      autoCorrectedIndex: -1
+      autoCorrectedIndex: -1,
+      disabledInputs: [false, false, false, false, false]
     };
   }
 
   handleInputChange = (index, value, min, max) => {
+    // Disable input immediately
+    const newDisabledInputs = [...this.state.disabledInputs];
+    newDisabledInputs[index] = true;
+    this.setState({ disabledInputs: newDisabledInputs });
+
     setTimeout(() => {
       let numValue = parseInt(value) || 0;
       const originalValue = numValue;
@@ -34,10 +40,15 @@ class IncomeCalculator extends Component {
         autoCorrectIndex = index;
         setTimeout(() => this.setState({ autoCorrectedIndex: -1 }), 1000);
       }
+
+      // Re-enable input after processing
+      const enabledInputs = [...this.state.disabledInputs];
+      enabledInputs[index] = false;
       
       this.setState({ 
         transactionInputs: newInputs,
-        autoCorrectedIndex: autoCorrectIndex
+        autoCorrectedIndex: autoCorrectIndex,
+        disabledInputs: enabledInputs
       });
     }, 1700);
   };
@@ -245,6 +256,7 @@ class IncomeCalculator extends Component {
                       value={inputValue}
                       min={rangeLimits.min}
                       max={rangeLimits.max}
+                      disabled={this.state.disabledInputs[row.displayIndex]}
                       // onChange={(e) => this.handleInputChange(row.displayIndex, e.target.value, rangeLimits.min, rangeLimits.max)}
                       onPaste={(e) => this.handleInputPaste(row.displayIndex, e, rangeLimits.min, rangeLimits.max)}
                       title={`Enter between ${rangeLimits.min} and ${rangeLimits.max} transactions`}

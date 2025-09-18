@@ -910,6 +910,77 @@
 	box-shadow: 0 0 0 3px rgba(0, 124, 186, 0.1);
 }
 
+/* Custom Date Controls */
+.custom-date-controls {
+	display: flex;
+	align-items: center;
+	gap: 15px;
+	margin-left: 15px;
+	padding: 10px;
+	background: #f8f9fa;
+	border-radius: 6px;
+	border: 1px solid #e9ecef;
+}
+
+.date-input-group {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.date-input-group label {
+	font-size: 13px;
+	font-weight: 500;
+	color: #495057;
+	white-space: nowrap;
+}
+
+.date-input {
+	background: white;
+	border: 2px solid #e9ecef;
+	border-radius: 4px;
+	padding: 6px 10px;
+	font-size: 13px;
+	color: #495057;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	min-width: 140px;
+}
+
+.date-input:hover {
+	border-color: #007cba;
+}
+
+.date-input:focus {
+	outline: none;
+	border-color: #007cba;
+	box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.1);
+}
+
+.apply-filter-btn {
+	background: linear-gradient(135deg, #007cba, #005a8b);
+	color: white;
+	border: none;
+	padding: 8px 16px;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 500;
+	transition: all 0.3s ease;
+	white-space: nowrap;
+}
+
+.apply-filter-btn:hover:not(:disabled) {
+	background: linear-gradient(135deg, #005a8b, #004066);
+	transform: translateY(-1px);
+}
+
+.apply-filter-btn:disabled {
+	background: #6c757d;
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
 .add-row-btn,
 .clear-all-btn {
 	background: linear-gradient(135deg, #007cba, #005a8b);
@@ -1197,6 +1268,7 @@
 	text-align: center;
 	font-family: 'Courier New', monospace;
 	font-weight: 600;
+	justify-content: center;
 }
 
 /* Amount Cell */
@@ -1327,6 +1399,31 @@
 		margin-right: 0;
 		justify-content: center;
 		order: -1; /* Show filter at the top on mobile */
+		flex-direction: column;
+		align-items: stretch;
+		gap: 10px;
+	}
+
+	.custom-date-controls {
+		flex-direction: column;
+		align-items: stretch;
+		margin-left: 0;
+		gap: 10px;
+	}
+
+	.date-input-group {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 5px;
+	}
+
+	.date-input {
+		min-width: auto;
+	}
+
+	.apply-filter-btn {
+		margin-top: 10px;
+		width: 100%;
 	}
 	
 	.export-controls {
