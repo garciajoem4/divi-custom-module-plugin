@@ -354,7 +354,7 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 		$output = sprintf(
 			'<div class="dicm-timesheet-tracker" data-config="%s">
 				<div style="text-align: center; padding: 20px; color: #007cba;">
-					<div class="loading-spinner">Loading Timesheet...</div>
+					<div class="loading-spinner"></div>
 				</div>
 			</div>',
 			esc_attr($config_json)

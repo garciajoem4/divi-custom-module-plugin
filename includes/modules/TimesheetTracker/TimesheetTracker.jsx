@@ -773,7 +773,7 @@ class TimesheetTracker extends Component {
 			<div className="dicm-timesheet-tracker">
 				{loading && (
 					<div className="loading-overlay">
-						<div className="loading-spinner">Saving...</div>
+						<div className="loading-spinner"></div>
 					</div>
 				)}
 				
