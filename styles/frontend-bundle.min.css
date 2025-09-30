@@ -1,10 +1,319 @@
 @import url(https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap);
+/* Income Calculator Chatbox Styles */
+
+.income-calculator-chatbox {
+	position: fixed;
+	bottom: 20px;
+	right: 20px;
+	z-index: 9999;
+}
+
+/* Chatbox Widget */
+.chatbox-widget {
+	background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+	border-radius: 15px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+	overflow: hidden;
+	transition: all 0.3s ease;
+    border: 1px solid #e4e4e4;
+}
+
+.chatbox-widget.closed {
+	height: auto;
+}
+
+.chatbox-widget.open {
+	height: auto;
+}
+
+/* Chatbox Header */
+.chatbox-header {
+	background: #263592;
+	color: white;
+	padding: 20px 30px;
+	cursor: pointer;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	transition: background 0.3s ease;
+}
+
+.chatbox-header h3 {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 700;
+	text-transform: uppercase;
+    text-align: center;
+	letter-spacing: 0.5px;
+    color: #fff;
+    white-space: nowrap;
+    padding-bottom: 0;
+}
+
+.chatbox-toggle {
+	background: none;
+	border: none;
+	color: white;
+	font-size: 20px;
+	font-weight: bold;
+	cursor: pointer;
+	width: 30px;
+	height: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	transition: background 0.3s ease;
+}
+
+.chatbox-toggle:hover {
+	background: rgba(255, 255, 255, 0.1);
+}
+
+/* Chatbox Content */
+.chatbox-content {
+	padding: 20px;
+}
+
+/* Model Selector */
+.model-selector {
+	margin-bottom: 20px;
+}
+
+.model-dropdown {
+	width: 100%;
+	padding: 10px 15px;
+	border: 2px solid #e9ecef;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 600;
+	background: white;
+	color: #333;
+	cursor: pointer;
+	transition: all 0.3s ease;
+}
+
+.model-dropdown:focus {
+	outline: none;
+	border-color: #667eea;
+	box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Transactions Section */
+.transactions-section {
+	margin-bottom: 25px;
+	text-align: center;
+}
+
+.transactions-section h4 {
+	margin: 0 0 15px 0;
+    padding-bottom: 0;
+	font-size: 14px;
+	font-weight: 700;
+	color: #333;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+}
+
+/* Transaction Counter */
+.transaction-counter {
+    max-width: 180px;
+    margin: 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	background: white;
+	border: 2px solid #e9ecef;
+	border-radius: 12px;
+	padding: 8px;
+}
+
+.counter-btn {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: white;
+	border: none;
+	border-radius: 50%;
+	width: 35px;
+	height: 35px;
+	font-size: 18px;
+	font-weight: bold;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.counter-btn:hover {
+	transform: scale(1.1);
+	box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.counter-btn:active {
+	transform: scale(0.95);
+}
+
+.transaction-input {
+	border: none;
+	background: transparent;
+	text-align: center;
+	font-size: 20px;
+	font-weight: 700;
+	color: #333;
+	width: 60px;
+	padding: 5px;
+	outline: none;
+}
+
+.transaction-input::-webkit-outer-spin-button,
+.transaction-input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+.transaction-input[type=number] {
+	appearance: textfield;
+	-moz-appearance: textfield;
+}
+
+/* Shares Section */
+.shares-section {
+	display: flex;
+	gap: 15px;
+	margin-bottom: 20px;
+    align-items: flex-end;
+}
+
+.share-box {
+	text-align: center;
+	padding: 10px 10px 17px;
+	border-radius: 12px;
+	position: relative;
+	overflow: hidden;
+}
+
+.our-share {
+	background: #fff;
+    width: 40%;
+}
+
+.your-share {
+    width: 60%;
+	background: #fff;
+    border: 1px solid #27A567;
+}
+
+.share-label {
+	font-size: 12px;
+	font-weight: 700;
+	margin-bottom: 5px;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	opacity: 0.9;
+}
+
+.your-share .share-label {
+    font-size: 14px;
+}
+
+.your-share .share-percentage {
+    font-size: 36px;
+    font-weight: 600;
+}
+
+.share-percentage {
+	font-size: 20px;
+	font-weight: 400;
+	line-height: 1;
+}
+
+/* Income Section */
+.income-section {
+	background: #fff;
+	border-radius: 12px;
+    border: 1px solid #27A567;
+	text-align: center;
+	position: relative;
+    display: flex;
+    overflow: hidden;
+    align-items: center;
+}
+
+.income-label {
+    width: 43%;
+	font-size: 12px;
+	font-weight: 700;
+	color: #363636;
+	margin-bottom: 10px;
+	text-transform: uppercase;
+    text-align: left;
+	letter-spacing: 1px;
+	line-height: 1.4;
+    background: #F4F4F4;
+    margin-bottom: 0;
+    padding: 20px 15px;
+    text-align: left;
+}
+
+.income-amount {
+    width: 57%;
+    text-align: center;
+	font-size: 48px;
+	font-weight: 700;
+	color: #27A567;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .chatbox-header h3 {
+        font-size: 14px;
+    }
+
+	.chatbox-widget {
+		bottom: 10px;
+		right: 10px;
+	}
+	
+	.chatbox-content {
+		padding: 15px;
+	}
+	
+	.transaction-input {
+		font-size: 18px;
+	}
+	
+	.income-amount {
+        width: 55%;
+		font-size: 42px;
+	}
+
+    .income-label {
+        width: 45%;
+    }
+}
+
+/* Animation for smooth opening/closing */
+.chatbox-content {
+	animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+	from {
+		opacity: 0;
+		transform: translateY(-20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
 /* Import Poppins font */
 
 /* TimesheetTracker Module Styles */
 
 .dicm-timesheet-tracker {
-	font-family: 'Poppins', sans-serif;
+	font-family: 'Poppins',Helvetica,Arial,Lucida,sans-serif;
 	max-width: 100%;
 	margin: 0 auto;
 	position: relative;
@@ -113,7 +422,7 @@
 	background: #007cba;
 	color: white;
 	border-radius: 10px;
-	padding: 20px;
+	padding: 20px 40px;
 	margin-bottom: 25px;
 	text-align: center;
 	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -129,7 +438,7 @@
 .timer-time {
 	font-size: 2.5rem;
 	font-weight: bold;
-	font-family: 'Courier New', monospace;
+	font-family: 'Poppins',Helvetica,Arial,Lucida,sans-serif;
 	letter-spacing: 2px;
 	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -411,6 +720,7 @@
 	border-collapse: collapse;
 	background: white;
 	min-width: 900px;
+	font-family: 'Poppins',Helvetica,Arial,Lucida,sans-serif;
 }
 
 /* Table Header */
@@ -509,7 +819,7 @@
 /* User Details Display */
 .user-details {
 	background: #f8f9fa;
-	border: 1px solid #e9ecef;
+	border: 1px solid #cbcbcb;
 	border-radius: 8px;
 	padding: 15px;
 	margin-bottom: 20px;
@@ -550,7 +860,7 @@
 }
 
 .info-timer-row .timer-section {
-	flex: 1;
+	max-width: 300px;
 	margin-bottom: 0;
 	justify-content: center;
 	align-items: center;
@@ -655,12 +965,12 @@
 	padding: 8px;
 	background-color: #f0f8ff;
 	border-radius: 4px;
-	font-family: 'Courier New', monospace;
+	font-family: 'Poppins',Helvetica,Arial,Lucida,sans-serif;
 }
 
 /* Read-only Field Display */
 .readonly-field {
-	padding: 8px;
+	padding: 8px 0;
 	color: #495057;
 	font-size: 14px;
 	min-height: 22px;
@@ -670,7 +980,7 @@
 
 .readonly-field.hours-display {
 	text-align: center;
-	font-family: 'Courier New', monospace;
+	font-family: 'Poppins',Helvetica,Arial,Lucida,sans-serif;
 	font-weight: 600;
 	justify-content: center;
 }
@@ -680,7 +990,7 @@
 	text-align: right;
 	font-weight: 600;
 	color: #28a745;
-	font-family: 'Courier New', monospace;
+	font-family: 'Poppins',Helvetica,Arial,Lucida,sans-serif;
 	background-color: #f8fff9;
 }
 
@@ -706,6 +1016,11 @@
 	align-items: center;
 	justify-content: center;
 	transition: all 0.2s ease;
+}
+
+.delete-row-btn {
+	background: #d1d1d1;
+    border: 1px solid #6c757d;
 }
 
 .timer-row-btn:hover {
@@ -740,53 +1055,60 @@
 }
 
 /* Column Width Optimization */
-.timesheet-table th:nth-child(1),
-.timesheet-table td:nth-child(1) { /* Date */
+.timesheet-table th.checkbox-column,
+.timesheet-table td.checkbox-column { /* Checkbox */
+	padding: 12px 10px 0 !important;
+	white-space: nowrap;
+	vertical-align: top;
+}
+
+.timesheet-table th.td-date,
+.timesheet-table td.td-date { /* Date */
 	width: 120px;
 	min-width: 120px;
 	white-space: nowrap;
 }
 
-.timesheet-table th:nth-child(2),
-.timesheet-table td:nth-child(2) { /* Project */
+.timesheet-table th.td-project,
+.timesheet-table td.td-project { /* Project */
 	width: 150px;
 	min-width: 150px;
 }
 
-.timesheet-table th:nth-child(3),
-.timesheet-table td:nth-child(3) { /* Tasks */
+.timesheet-table th.td-tasks,
+.timesheet-table td.td-tasks { /* Tasks */
 	width: 160px;
 	min-width: 160px;
 }
 
-.timesheet-table th:nth-child(4),
-.timesheet-table td:nth-child(4) { /* Notes */
+.timesheet-table th.td-notes,
+.timesheet-table td.td-notes { /* Notes */
 	width: 200px;
 	min-width: 200px;
 }
 
-.timesheet-table th:nth-child(5),
-.timesheet-table td:nth-child(5) { /* Hours */
+.timesheet-table th.td-hours,
+.timesheet-table td.td-hours { /* Hours */
 	width: 80px;
 	min-width: 80px;
 	text-align: center;
 }
 
-.timesheet-table th:nth-child(6),
-.timesheet-table td:nth-child(6) { /* Billable Rate */
+.timesheet-table th.td-rate,
+.timesheet-table td.td-rate { /* Billable Rate */
 	width: 100px;
 	min-width: 100px;
 	text-align: center;
 }
 
-.timesheet-table th:nth-child(7),
-.timesheet-table td:nth-child(7) { /* Billable Amount */
+.timesheet-table th.td-amount,
+.timesheet-table td.td-amount { /* Billable Amount */
 	width: 120px;
 	min-width: 120px;
 }
 
-.timesheet-table th:nth-child(8),
-.timesheet-table td:nth-child(8) { /* Actions */
+.timesheet-table th.td-actions,
+.timesheet-table td.td-actions { /* Actions */
 	width: 80px;
 	min-width: 80px;
 }
@@ -907,11 +1229,76 @@
 	}
 }
 
+/* Invoice Selection Styles */
+.checkbox-column {
+	width: 40px;
+	text-align: center;
+	padding: 8px 4px !important;
+}
+
+.checkbox-column input[type="checkbox"] {
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	cursor: pointer;
+	accent-color: #007cba;
+}
+
+.checkbox-column input[type="checkbox"]:focus {
+	outline: 2px solid #007cba;
+	outline-offset: 1px;
+}
+
+.invoice-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	background-color: #cccccc !important;
+	color: #fff !important;
+}
+
+.invoice-btn:disabled:hover {
+	background-color: #cccccc !important;
+	color: #fff !important;
+}
+
+/*
+ * Column-Specific Class Names Available for Custom Styling
+ * 
+ * Header Classes:
+ * .th-checkbox - Checkbox header
+ * .th-date - Date header  
+ * .th-project - Project header
+ * .th-tasks - Tasks header
+ * .th-notes - Notes header
+ * .th-hours - Hours header
+ * .th-rate - Billable Rate header
+ * .th-amount - Billable Amount header
+ * .th-actions - Actions header
+ *
+ * Data Cell Classes:
+ * .td-checkbox - Checkbox column
+ * .td-date - Date column
+ * .td-project - Project column  
+ * .td-tasks - Tasks column
+ * .td-notes - Notes column
+ * .td-hours - Hours column
+ * .td-rate - Rate column
+ * .td-amount - Amount column
+ * .td-actions - Actions column
+ *
+ * Example Usage:
+ * .td-project, .th-project { width: 200px; min-width: 200px; }
+ * .td-hours, .th-hours { text-align: center; }
+ * .td-amount, .th-amount { text-align: right; }
+ * .td-date { background-color: #f0f8ff; }
+ */
+
 /* Print Styles */
 @media print {
 	.timer-section,
 	.timesheet-controls,
-	.actions-cell {
+	.actions-cell,
+	.checkbox-column {
 		display: none !important;
 	}
 	

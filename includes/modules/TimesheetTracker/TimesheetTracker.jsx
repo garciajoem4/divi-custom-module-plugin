@@ -12,6 +12,8 @@ class TimesheetTracker extends Component {
 			rows: [],
 			timerRunning: false,
 			timerSeconds: 0,
+			timerStartTime: null,
+			timerPausedTime: 0,
 			currentTimerRow: null,
 			totalHours: 0,
 			totalAmount: 0,
@@ -21,6 +23,7 @@ class TimesheetTracker extends Component {
 			startDate: '', // Custom start date for filtering
 			endDate: '', // Custom end date for filtering
 			contributors: [], // List of users who have used the timesheet tracker
+			selectedRowsForInvoice: [], // Track which rows are selected for invoice generation
 			config: {
 				maxRows: config.maxRows || 10,
 				defaultHourlyRate: 15, // Fixed rate at $15
@@ -59,13 +62,15 @@ class TimesheetTracker extends Component {
 
 		// Set up auto-save (less frequent for database operations)
 		if (this.state.config.saveData && this.state.config.autoSaveInterval > 0) {
-			this.autoSaveInterval = setInterval(() => {
-				this.saveAllPendingChanges();
-			}, Math.max(this.state.config.autoSaveInterval, 5000)); // Minimum 5 seconds
+			this.autoSaveInterval = setInterval(() => {/* Lines 63-64 omitted */}, Math.max(this.state.config.autoSaveInterval, 5000)); // Minimum 5 seconds
 		}
-	}
-
-	componentWillUnmount() {
+		
+		// Add visibility change listener for background timer support
+		document.addEventListener('visibilitychange', this.handleVisibilityChange);
+		
+		// Restore timer state if it was running before
+		this.restoreTimerState();
+	}	componentWillUnmount() {
 		// Clear intervals
 		if (this.timerInterval) {
 			clearInterval(this.timerInterval);
@@ -73,23 +78,148 @@ class TimesheetTracker extends Component {
 		if (this.autoSaveInterval) {
 			clearInterval(this.autoSaveInterval);
 		}
+		
+		// Remove visibility change listener
+		document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+		
+		// Save timer state before unmounting
+		if (this.state.timerRunning) {
+			this.saveTimerState();
+		}
+	}
+
+	// Background Timer Management
+	getTimerStorageKey = () => {
+		return `timesheet_timer_${this.state.config.userId || 'guest'}`;
+	}
+
+	saveTimerState = () => {
+		if (!this.state.timerRunning) return;
+		
+		const timerState = {
+			running: this.state.timerRunning,
+			startTime: this.state.timerStartTime,
+			pausedTime: this.state.timerPausedTime,
+			currentRow: this.state.currentTimerRow,
+			savedAt: Date.now()
+		};
+		
+		try {
+			localStorage.setItem(this.getTimerStorageKey(), JSON.stringify(timerState));
+		} catch (error) {
+			console.warn('Could not save timer state to localStorage:', error);
+		}
+	}
+
+	restoreTimerState = () => {
+		try {
+			const savedState = localStorage.getItem(this.getTimerStorageKey());
+			if (!savedState) return false;
+			
+			const timerState = JSON.parse(savedState);
+			
+			// Check if the saved timer is still valid (within last 24 hours)
+			const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+			if (Date.now() - timerState.savedAt > maxAge) {
+				localStorage.removeItem(this.getTimerStorageKey());
+				return false;
+			}
+			
+			if (timerState.running && timerState.startTime) {
+				this.setState({
+					timerRunning: true,
+					timerStartTime: timerState.startTime,
+					timerPausedTime: timerState.pausedTime || 0,
+					currentTimerRow: timerState.currentRow
+				});
+				
+				// Start the display update interval
+				this.startTimerDisplay();
+				return true;
+			}
+		} catch (error) {
+			console.warn('Could not restore timer state from localStorage:', error);
+			localStorage.removeItem(this.getTimerStorageKey());
+		}
+		
+		return false;
+	}
+
+	clearTimerState = () => {
+		try {
+			localStorage.removeItem(this.getTimerStorageKey());
+		} catch (error) {
+			console.warn('Could not clear timer state from localStorage:', error);
+		}
+	}
+
+	calculateElapsedTime = () => {
+		if (!this.state.timerRunning || !this.state.timerStartTime) return 0;
+		
+		const now = Date.now();
+		const elapsed = Math.floor((now - this.state.timerStartTime + this.state.timerPausedTime) / 1000);
+		return Math.max(0, elapsed);
+	}
+
+	updateTimerDisplay = () => {
+		if (!this.state.timerRunning) return;
+		
+		const elapsed = this.calculateElapsedTime();
+		
+		this.setState({ timerSeconds: elapsed }, () => {
+			// Auto-save timer state periodically
+			if (elapsed > 0 && elapsed % 30 === 0) { // Save every 30 seconds
+				this.saveTimerState();
+			}
+		});
+	}
+
+	startTimerDisplay = () => {
+		if (this.timerInterval) {
+			clearInterval(this.timerInterval);
+		}
+		
+		// Update immediately
+		this.updateTimerDisplay();
+		
+		// Continue updating every second
+		this.timerInterval = setInterval(this.updateTimerDisplay, 1000);
+	}
+
+	handleVisibilityChange = () => {
+		if (!this.state.timerRunning) return;
+		
+		if (document.visibilityState === 'visible') {
+			// Tab became visible - update timer display
+			this.updateTimerDisplay();
+			
+			// Restart the display interval to ensure smooth updates
+			this.startTimerDisplay();
+		} else {
+			// Tab became hidden - save current state
+			this.saveTimerState();
+		}
 	}
 
 	// Timer Functions
 	startTimer = (rowIndex = null) => {
 		if (this.state.timerRunning) return;
 
+		const now = Date.now();
+		
 		this.setState({
 			timerRunning: true,
 			currentTimerRow: rowIndex,
-			timerSeconds: 0
+			timerSeconds: 0,
+			timerStartTime: now,
+			timerPausedTime: 0
+		}, () => {
+			// Save initial timer state
+			this.saveTimerState();
+			
+			// Start the display update interval
+			this.startTimerDisplay();
 		});
-
-		this.timerInterval = setInterval(() => {
-			this.setState(prevState => ({
-				timerSeconds: prevState.timerSeconds + 1
-			}));
-		}, 1000);
 
 		if (this.state.config.timerSound) {
 			this.playTimerSound('start');
@@ -101,8 +231,9 @@ class TimesheetTracker extends Component {
 
 		clearInterval(this.timerInterval);
 		
-		// Calculate hours and update the current row
-		const hours = this.formatTimeToDecimal(this.state.timerSeconds);
+		// Calculate final elapsed time from timestamps
+		const finalElapsed = this.calculateElapsedTime();
+		const hours = this.formatTimeToDecimal(finalElapsed);
 		
 		if (this.state.currentTimerRow !== null) {
 			this.updateRowField(this.state.currentTimerRow, 'hours', hours.toString());
@@ -111,8 +242,13 @@ class TimesheetTracker extends Component {
 		this.setState({
 			timerRunning: false,
 			currentTimerRow: null,
-			timerSeconds: 0
+			timerSeconds: 0,
+			timerStartTime: null,
+			timerPausedTime: 0
 		});
+
+		// Clear saved timer state
+		this.clearTimerState();
 
 		if (this.state.config.timerSound) {
 			this.playTimerSound('stop');
@@ -127,8 +263,13 @@ class TimesheetTracker extends Component {
 		this.setState({
 			timerRunning: false,
 			currentTimerRow: null,
-			timerSeconds: 0
+			timerSeconds: 0,
+			timerStartTime: null,
+			timerPausedTime: 0
 		});
+		
+		// Clear saved timer state
+		this.clearTimerState();
 	}
 
 	playTimerSound = (type) => {
@@ -153,12 +294,62 @@ class TimesheetTracker extends Component {
 		}
 	}
 
+	// Invoice Row Selection Functions
+	handleSelectRowForInvoice = (rowId, isSelected) => {
+		this.setState(prevState => {
+			const selectedRows = [...prevState.selectedRowsForInvoice];
+			
+			if (isSelected && !selectedRows.includes(rowId)) {
+				selectedRows.push(rowId);
+			} else if (!isSelected && selectedRows.includes(rowId)) {
+				const index = selectedRows.indexOf(rowId);
+				selectedRows.splice(index, 1);
+			}
+			
+			return { selectedRowsForInvoice: selectedRows };
+		});
+	}
+
+	handleSelectAllRowsForInvoice = (isSelected) => {
+		this.setState(prevState => {
+			if (isSelected) {
+				// Select all rows
+				const allRowIds = prevState.rows.map(row => row.id);
+				return { selectedRowsForInvoice: allRowIds };
+			} else {
+				// Deselect all rows
+				return { selectedRowsForInvoice: [] };
+			}
+		});
+	}
+
+	getSelectedRowsForInvoice = () => {
+		return this.state.rows.filter(row => 
+			this.state.selectedRowsForInvoice.includes(row.id)
+		);
+	}
+
+	isRowSelectedForInvoice = (rowId) => {
+		return this.state.selectedRowsForInvoice.includes(rowId);
+	}
+
+	areAllRowsSelectedForInvoice = () => {
+		return this.state.rows.length > 0 && 
+			   this.state.selectedRowsForInvoice.length === this.state.rows.length;
+	}
+
+	areSomeRowsSelectedForInvoice = () => {
+		return this.state.selectedRowsForInvoice.length > 0 && 
+			   this.state.selectedRowsForInvoice.length < this.state.rows.length;
+	}
+
 	// Row Management Functions
 	addRow = () => {
 		if (this.state.rows.length >= this.state.config.maxRows) return;
 
+		const newRowId = 'temp_' + Date.now();
 		const newRow = {
-			id: 'temp_' + Date.now(), // Temporary ID until saved to database
+			id: newRowId, // Temporary ID until saved to database
 			date: new Date().toISOString().split('T')[0],
 			project: this.state.config.defaultProject,
 			tasks: '',
@@ -170,7 +361,8 @@ class TimesheetTracker extends Component {
 		};
 
 		this.setState(prevState => ({
-			rows: [...prevState.rows, newRow]
+			rows: [...prevState.rows, newRow],
+			selectedRowsForInvoice: [...prevState.selectedRowsForInvoice, newRowId] // Auto-select new rows for invoice
 		}), () => {
 			this.calculateTotals();
 			if (this.state.config.timerAutoStart && this.state.config.showTimer) {
@@ -185,8 +377,11 @@ class TimesheetTracker extends Component {
 			this.stopTimer();
 		}
 
+		const rowToDelete = this.state.rows[index];
+
 		this.setState(prevState => ({
 			rows: prevState.rows.filter((_, i) => i !== index),
+			selectedRowsForInvoice: prevState.selectedRowsForInvoice.filter(id => id !== rowToDelete.id), // Remove deleted row from selection
 			currentTimerRow: prevState.currentTimerRow === index ? null : 
 				(prevState.currentTimerRow > index ? prevState.currentTimerRow - 1 : prevState.currentTimerRow)
 		}), this.calculateTotals);
@@ -195,11 +390,26 @@ class TimesheetTracker extends Component {
 	clearAllRows = () => {
 		this.resetTimer();
 		this.setState({
-			rows: []
+			rows: [],
+			selectedRowsForInvoice: [] // Clear invoice selections when clearing all rows
 		}, () => {
 			this.calculateTotals();
 			this.addRow(); // Add one empty row
 		});
+	}
+
+	// Confirmation dialog for row deletion
+	confirmDeleteRow = (entryId, index) => {
+		const row = this.state.rows[index];
+		const projectInfo = row.project || 'Untitled Project';
+		const dateInfo = row.date || 'No Date';
+		const hoursInfo = row.hours || '0';
+		
+		const confirmMessage = `Are you sure you want to delete this timesheet entry?\n\nProject: ${projectInfo}\nDate: ${dateInfo}\nHours: ${hoursInfo}\n\nThis action cannot be undone.`;
+		
+		if (window.confirm(confirmMessage)) {
+			this.deleteTimesheetEntry(entryId, index);
+		}
 	}
 
 	// Field Update Functions
@@ -363,6 +573,7 @@ class TimesheetTracker extends Component {
 			}
 		];
 
+		// Demo data is view-only, so no need to handle invoice selections
 		this.setState({ rows: demoRows }, () => {
 			this.calculateTotals();
 		});
@@ -529,7 +740,13 @@ class TimesheetTracker extends Component {
 					amount: entry.billable_amount
 				}));
 
-				this.setState({ rows: entries }, () => {
+				// Initially select all loaded rows for invoice generation
+				const allRowIds = entries.map(entry => entry.id);
+
+				this.setState({ 
+					rows: entries,
+					selectedRowsForInvoice: allRowIds
+				}, () => {
 					this.calculateTotals();
 					// If no entries, add one empty row
 					if (entries.length === 0) {
@@ -671,9 +888,27 @@ class TimesheetTracker extends Component {
 	}
 
 	generateInvoice = () => {
-		const { rows, config } = this.state;
+		const { config } = this.state;
+		const selectedRows = this.getSelectedRowsForInvoice();
+		
+		// Don't generate invoice if no rows are selected
+		if (selectedRows.length === 0) {
+			alert('Please select at least one row to include in the invoice.');
+			return;
+		}
+		
 		const currentDate = new Date().toLocaleDateString();
-		const invoiceNumber = `INV-${Date.now()}`;
+		const invoiceNumber = `${Date.now()}`;
+		
+		// Calculate totals for selected rows only
+		const selectedTotals = selectedRows.reduce((acc, row) => {
+			const hours = parseFloat(row.hours) || 0;
+			const amount = parseFloat(row.amount) || 0;
+			return {
+				hours: acc.hours + hours,
+				amount: acc.amount + amount
+			};
+		}, { hours: 0, amount: 0 });
 		
 		// Create invoice HTML content
 		const invoiceHTML = `
@@ -683,25 +918,66 @@ class TimesheetTracker extends Component {
 				<title>Invoice - ${invoiceNumber}</title>
 				<style>
 					body { font-family: 'Poppins', Arial, sans-serif; margin: 40px; }
-					.invoice-header { text-align: center; margin-bottom: 30px; }
+					.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
+					.details { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
+					.details .label { padding-right: 60px; }
+					.invoice-subdetail { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+					.invoice-number { text-align: right; margin-bottom: 30px; }
 					.invoice-details { margin-bottom: 20px; }
 					.invoice-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
 					.invoice-table th, .invoice-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
 					.invoice-table th { background-color: #f8f9fa; }
 					.totals { text-align: right; margin-top: 20px; font-weight: bold; }
 					.amount { text-align: right; }
+					.no-margin { margin: 0; }
+					.no-margin-top { margin-top: 0; }
+					.margin-balance { margin-top: 0; margin-bottom: 10px; }
+					p { font-size: 12px; }
+					table { font-size: 12px; }
+					table th { font-size: 12px; }
+					table td { font-size: 12px; }
 				</style>
 			</head>
 			<body>
-				<div class="invoice-header">
-					<h1>INVOICE</h1>
-					<p><strong>Invoice #:</strong> ${invoiceNumber}</p>
-					<p><strong>Date:</strong> ${currentDate}</p>
+				<div class="header">
+					<div class="company-info">
+						<h2 class="margin-balance">Joemari Garcia</h2>
+						<p class="margin-balance">P3B6L10 Garden Bloom Villas, Cotcot </p>
+						<p class="margin-balance">Liloan Cebu,</p>
+						<p class="margin-balance">6002,</p>
+						<p class="margin-balance">Philippines</p>
+						<p class="margin-balance">Email: garciajoema4@gmail.com</p>
+					</div>
+					<div class="invoice-number">
+						<h3 class="no-margin">INVOICE #${invoiceNumber}</h3>
+					</div>
 				</div>
-				
-				<div class="invoice-details">
-					<p><strong>Services Provided:</strong> Timesheet Services</p>
-					<p><strong>Rate:</strong> $15.00 per hour</p>
+				<div class="details">
+					<div class="dates">
+						<div class="invoice-subdetail invoice-date">
+							<div class="label"><p class="no-margin"><strong>Invoice Date</strong></p></div>
+							<div class="value"><p class="no-margin">${currentDate}</p></div>
+						</div>
+						<div class="invoice-subdetail invoice-provided">
+							<div class="label"><p class="no-margin"><strong>Services Provided</strong></p></div>
+							<div class="value"><p class="no-margin">Web Development and Design</p></div>
+						</div>
+						<div class="invoice-subdetail invoice-total">
+							<div class="label"><p class="no-margin"><strong>Invoice Total (USD)</strong></p></div>
+							<div class="value"><p class="no-margin">$ ${selectedTotals.amount.toFixed(config.decimalPlaces)}</p></div>
+						</div>
+					</div>
+					<div class="bill-to">
+						<div class="label"><p class="no-margin"><strong>Bill To</strong></p></div>
+						<div class="value">
+							<h3 class="margin-balance">GDV Ventures</h3>
+							<p class="margin-balance">406 Ninth Ave STE 304,</p>
+							<p class="margin-balance">San Diego,</p>
+							<p class="margin-balance">CA 92101</p>
+							<p class="margin-balance">USA</p>
+							<p class="margin-balance">Email: gianni@gdv.ventures</p>
+						</div>
+					</div>
 				</div>
 
 				<table class="invoice-table">
@@ -716,7 +992,7 @@ class TimesheetTracker extends Component {
 						</tr>
 					</thead>
 					<tbody>
-						${rows.map(row => `
+						${selectedRows.map(row => `
 							<tr>
 								<td>${row.date}</td>
 								<td>${row.project}</td>
@@ -730,8 +1006,8 @@ class TimesheetTracker extends Component {
 				</table>
 
 				<div class="totals">
-					<p><strong>Total Hours:</strong> ${this.state.totalHours.toFixed(config.decimalPlaces)}</p>
-					<p><strong>Total Amount: $${this.state.totalAmount.toFixed(config.decimalPlaces)}</strong></p>
+					<p><strong>Total Hours:</strong> ${selectedTotals.hours.toFixed(config.decimalPlaces)}</p>
+					<p><strong>Total Amount: $ ${selectedTotals.amount.toFixed(config.decimalPlaces)}</strong></p>
 				</div>
 			</body>
 			</html>
@@ -927,12 +1203,12 @@ class TimesheetTracker extends Component {
 								>
 									+ Add Row
 								</button>
-								<button 
+								{/* <button 
 									className="clear-all-btn"
 									onClick={this.clearAllRows}
 								>
 									Clear All
-								</button>
+								</button> */}
 							</>
 						)}
 						
@@ -942,15 +1218,16 @@ class TimesheetTracker extends Component {
 								onClick={this.exportToCSV}
 								title="Export to CSV"
 							>
-								📊 Export CSV
+								Export CSV
 							</button>
 							{config.isLoggedIn && (
 								<button 
 									className="invoice-btn"
 									onClick={this.generateInvoice}
-									title="Generate Invoice"
+									disabled={this.state.selectedRowsForInvoice.length === 0}
+									title={`Generate Invoice for ${this.state.selectedRowsForInvoice.length} selected row(s)`}
 								>
-									🧾 Generate Invoice
+									Generate Invoice ({this.state.selectedRowsForInvoice.length})
 								</button>
 							)}
 						</div>
@@ -971,20 +1248,43 @@ class TimesheetTracker extends Component {
 						<table className="timesheet-table">
 							<thead className="timesheet-header">
 								<tr>
-									<th>Date</th>
-									<th>Project</th>
-									<th>Tasks</th>
-									<th>Notes</th>
-									<th>Hours</th>
-									{!isViewOnly && <th>Billable Rate</th>}
-									{!isViewOnly && <th>Billable Amount</th>}
-									{!isViewOnly && <th>Actions</th>}
+									{!isViewOnly && config.isLoggedIn && (
+										<th className="checkbox-column th-checkbox">
+											<input
+												type="checkbox"
+												checked={this.areAllRowsSelectedForInvoice()}
+												ref={checkbox => {
+													if (checkbox) checkbox.indeterminate = this.areSomeRowsSelectedForInvoice();
+												}}
+												onChange={(e) => this.handleSelectAllRowsForInvoice(e.target.checked)}
+												title="Select all rows for invoice"
+											/>
+										</th>
+									)}
+									<th className="th-date">Date</th>
+									<th className="th-project">Project</th>
+									<th className="th-tasks">Tasks</th>
+									<th className="th-notes">Notes</th>
+									<th className="th-hours">Hours</th>
+									{!isViewOnly && <th className="th-rate">Billable Rate</th>}
+									{!isViewOnly && <th className="th-amount">Billable Amount</th>}
+									{!isViewOnly && <th className="th-actions">Actions</th>}
 								</tr>
 							</thead>
 							<tbody className="timesheet-body">
 								{this.state.rows.map((row, index) => (
 									<tr key={row.id} className="timesheet-row">
-										<td>
+										{!isViewOnly && config.isLoggedIn && (
+											<td className="checkbox-column td-checkbox">
+												<input
+													type="checkbox"
+													checked={this.isRowSelectedForInvoice(row.id)}
+													onChange={(e) => this.handleSelectRowForInvoice(row.id, e.target.checked)}
+													title="Select for invoice"
+												/>
+											</td>
+										)}
+										<td className="td-date">
 											{isViewOnly ? (
 												<div className="readonly-field">{row.date}</div>
 											) : (
@@ -995,7 +1295,7 @@ class TimesheetTracker extends Component {
 												/>
 											)}
 										</td>
-										<td>
+										<td className="td-project">
 											{isViewOnly ? (
 												<div className="readonly-field">{row.project}</div>
 											) : (
@@ -1007,7 +1307,7 @@ class TimesheetTracker extends Component {
 												/>
 											)}
 										</td>
-										<td>
+										<td className="td-tasks">
 											{isViewOnly ? (
 												<div className="readonly-field">{row.tasks}</div>
 											) : (
@@ -1029,7 +1329,7 @@ class TimesheetTracker extends Component {
 												)
 											)}
 										</td>
-										<td>
+										<td className="td-notes">
 											{isViewOnly ? (
 												<div className="readonly-field">{row.notes}</div>
 											) : (
@@ -1041,7 +1341,7 @@ class TimesheetTracker extends Component {
 												/>
 											)}
 										</td>
-										<td>
+										<td className="td-hours">
 											{isViewOnly ? (
 												<div className="readonly-field hours-display">{row.hours}</div>
 											) : (
@@ -1056,19 +1356,19 @@ class TimesheetTracker extends Component {
 											)}
 										</td>
 										{!isViewOnly && (
-											<td>
+											<td className="td-rate">
 												<div className="fixed-rate-display">
 													$15.00
 												</div>
 											</td>
 										)}
 										{!isViewOnly && (
-											<td className="amount-cell">
+											<td className="amount-cell td-amount">
 												${row.amount}
 											</td>
 										)}
 										{!isViewOnly && (
-											<td className="actions-cell">
+											<td className="actions-cell td-actions">
 												{config.showTimer && (
 													<button
 														className={`timer-row-btn ${this.state.currentTimerRow === index ? 'active' : ''}`}
@@ -1085,7 +1385,7 @@ class TimesheetTracker extends Component {
 												)}
 												<button
 													className="delete-row-btn"
-													onClick={() => this.deleteTimesheetEntry(row.id, index)}
+													onClick={() => this.confirmDeleteRow(row.id, index)}
 													title="Delete Row"
 													disabled={loading}
 												>

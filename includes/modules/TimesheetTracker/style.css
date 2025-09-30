@@ -4,7 +4,7 @@
 /* TimesheetTracker Module Styles */
 
 .dicm-timesheet-tracker {
-	font-family: 'Poppins', sans-serif;
+	font-family: 'Poppins',Helvetica,Arial,Lucida,sans-serif;
 	max-width: 100%;
 	margin: 0 auto;
 	position: relative;
@@ -113,7 +113,7 @@
 	background: #007cba;
 	color: white;
 	border-radius: 10px;
-	padding: 20px;
+	padding: 20px 40px;
 	margin-bottom: 25px;
 	text-align: center;
 	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -129,7 +129,7 @@
 .timer-time {
 	font-size: 2.5rem;
 	font-weight: bold;
-	font-family: 'Courier New', monospace;
+	font-family: 'Poppins',Helvetica,Arial,Lucida,sans-serif;
 	letter-spacing: 2px;
 	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -411,6 +411,7 @@
 	border-collapse: collapse;
 	background: white;
 	min-width: 900px;
+	font-family: 'Poppins',Helvetica,Arial,Lucida,sans-serif;
 }
 
 /* Table Header */
@@ -509,7 +510,7 @@
 /* User Details Display */
 .user-details {
 	background: #f8f9fa;
-	border: 1px solid #e9ecef;
+	border: 1px solid #cbcbcb;
 	border-radius: 8px;
 	padding: 15px;
 	margin-bottom: 20px;
@@ -550,7 +551,7 @@
 }
 
 .info-timer-row .timer-section {
-	flex: 1;
+	max-width: 300px;
 	margin-bottom: 0;
 	justify-content: center;
 	align-items: center;
@@ -655,12 +656,12 @@
 	padding: 8px;
 	background-color: #f0f8ff;
 	border-radius: 4px;
-	font-family: 'Courier New', monospace;
+	font-family: 'Poppins',Helvetica,Arial,Lucida,sans-serif;
 }
 
 /* Read-only Field Display */
 .readonly-field {
-	padding: 8px;
+	padding: 8px 0;
 	color: #495057;
 	font-size: 14px;
 	min-height: 22px;
@@ -670,7 +671,7 @@
 
 .readonly-field.hours-display {
 	text-align: center;
-	font-family: 'Courier New', monospace;
+	font-family: 'Poppins',Helvetica,Arial,Lucida,sans-serif;
 	font-weight: 600;
 	justify-content: center;
 }
@@ -680,7 +681,7 @@
 	text-align: right;
 	font-weight: 600;
 	color: #28a745;
-	font-family: 'Courier New', monospace;
+	font-family: 'Poppins',Helvetica,Arial,Lucida,sans-serif;
 	background-color: #f8fff9;
 }
 
@@ -745,53 +746,60 @@
 }
 
 /* Column Width Optimization */
-.timesheet-table th:nth-child(1),
-.timesheet-table td:nth-child(1) { /* Date */
+.timesheet-table th.checkbox-column,
+.timesheet-table td.checkbox-column { /* Checkbox */
+	padding: 12px 10px 0 !important;
+	white-space: nowrap;
+	vertical-align: top;
+}
+
+.timesheet-table th.td-date,
+.timesheet-table td.td-date { /* Date */
 	width: 120px;
 	min-width: 120px;
 	white-space: nowrap;
 }
 
-.timesheet-table th:nth-child(2),
-.timesheet-table td:nth-child(2) { /* Project */
+.timesheet-table th.td-project,
+.timesheet-table td.td-project { /* Project */
 	width: 150px;
 	min-width: 150px;
 }
 
-.timesheet-table th:nth-child(3),
-.timesheet-table td:nth-child(3) { /* Tasks */
+.timesheet-table th.td-tasks,
+.timesheet-table td.td-tasks { /* Tasks */
 	width: 160px;
 	min-width: 160px;
 }
 
-.timesheet-table th:nth-child(4),
-.timesheet-table td:nth-child(4) { /* Notes */
+.timesheet-table th.td-notes,
+.timesheet-table td.td-notes { /* Notes */
 	width: 200px;
 	min-width: 200px;
 }
 
-.timesheet-table th:nth-child(5),
-.timesheet-table td:nth-child(5) { /* Hours */
+.timesheet-table th.td-hours,
+.timesheet-table td.td-hours { /* Hours */
 	width: 80px;
 	min-width: 80px;
 	text-align: center;
 }
 
-.timesheet-table th:nth-child(6),
-.timesheet-table td:nth-child(6) { /* Billable Rate */
+.timesheet-table th.td-rate,
+.timesheet-table td.td-rate { /* Billable Rate */
 	width: 100px;
 	min-width: 100px;
 	text-align: center;
 }
 
-.timesheet-table th:nth-child(7),
-.timesheet-table td:nth-child(7) { /* Billable Amount */
+.timesheet-table th.td-amount,
+.timesheet-table td.td-amount { /* Billable Amount */
 	width: 120px;
 	min-width: 120px;
 }
 
-.timesheet-table th:nth-child(8),
-.timesheet-table td:nth-child(8) { /* Actions */
+.timesheet-table th.td-actions,
+.timesheet-table td.td-actions { /* Actions */
 	width: 80px;
 	min-width: 80px;
 }
@@ -912,11 +920,76 @@
 	}
 }
 
+/* Invoice Selection Styles */
+.checkbox-column {
+	width: 40px;
+	text-align: center;
+	padding: 8px 4px !important;
+}
+
+.checkbox-column input[type="checkbox"] {
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	cursor: pointer;
+	accent-color: #007cba;
+}
+
+.checkbox-column input[type="checkbox"]:focus {
+	outline: 2px solid #007cba;
+	outline-offset: 1px;
+}
+
+.invoice-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	background-color: #cccccc !important;
+	color: #fff !important;
+}
+
+.invoice-btn:disabled:hover {
+	background-color: #cccccc !important;
+	color: #fff !important;
+}
+
+/*
+ * Column-Specific Class Names Available for Custom Styling
+ * 
+ * Header Classes:
+ * .th-checkbox - Checkbox header
+ * .th-date - Date header  
+ * .th-project - Project header
+ * .th-tasks - Tasks header
+ * .th-notes - Notes header
+ * .th-hours - Hours header
+ * .th-rate - Billable Rate header
+ * .th-amount - Billable Amount header
+ * .th-actions - Actions header
+ *
+ * Data Cell Classes:
+ * .td-checkbox - Checkbox column
+ * .td-date - Date column
+ * .td-project - Project column  
+ * .td-tasks - Tasks column
+ * .td-notes - Notes column
+ * .td-hours - Hours column
+ * .td-rate - Rate column
+ * .td-amount - Amount column
+ * .td-actions - Actions column
+ *
+ * Example Usage:
+ * .td-project, .th-project { width: 200px; min-width: 200px; }
+ * .td-hours, .th-hours { text-align: center; }
+ * .td-amount, .th-amount { text-align: right; }
+ * .td-date { background-color: #f0f8ff; }
+ */
+
 /* Print Styles */
 @media print {
 	.timer-section,
 	.timesheet-controls,
-	.actions-cell {
+	.actions-cell,
+	.checkbox-column {
 		display: none !important;
 	}
 	

@@ -1,6 +1,7 @@
 // Frontend JavaScript for Divi Custom Modules
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import PopupIncomeCalculator from './modules/PopupIncomeCalculator/PopupIncomeCalculator';
 import TimesheetTracker from './modules/TimesheetTracker/TimesheetTracker';
 
 // AWeber Form fixes for Safari
@@ -245,5 +246,46 @@ document.addEventListener('DOMContentLoaded', function() {
     container.setAttribute('data-initialized', 'true');
     
     console.log('TimesheetTracker: Component initialized successfully');
+  });
+});
+
+
+// PopupIncomeCalculator React Component Initialization
+document.addEventListener("DOMContentLoaded", function() {
+  // Find all PopupIncomeCalculator containers
+  const containers = document.querySelectorAll(".dicm-popup-income-calculator");
+  
+  containers.forEach(function(container) {
+    // Skip if already initialized
+    if (container.hasAttribute("data-initialized")) {
+      return;
+    }
+    
+    // Get configuration from data attribute
+    const configData = container.getAttribute("data-config");
+    let config = {};
+    
+    try {
+      config = configData ? JSON.parse(configData) : {};
+    } catch (error) {
+      console.error("PopupIncomeCalculator: Failed to parse config data:", error);
+      return;
+    }
+    
+    // Clear existing content
+    container.innerHTML = "";
+    
+    // Create React root and render component
+    const root = createRoot(container);
+    root.render(React.createElement(PopupIncomeCalculator, {
+      attrs: {
+        config: JSON.stringify(config)
+      }
+    }));
+    
+    // Mark as initialized
+    container.setAttribute("data-initialized", "true");
+    
+    console.log("PopupIncomeCalculator: Component initialized successfully");
   });
 });

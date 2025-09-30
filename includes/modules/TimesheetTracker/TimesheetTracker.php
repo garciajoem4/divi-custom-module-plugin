@@ -164,7 +164,7 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 			'preset_tasks' => array(
 				'label' => esc_html__( 'Preset Tasks', 'dicm-divi-custom-modules' ),
 				'type' => 'textarea',
-				'default' => "Development\nTesting\nDocumentation\nMeeting\nResearch",
+				'default' => "Development\nDesign\nTesting\nDocumentation\nMeeting\nResearch",
 				'toggle_slug' => 'default_values',
 				'description' => esc_html__( 'Enter preset tasks (one per line) for quick selection.', 'dicm-divi-custom-modules' ),
 			),
