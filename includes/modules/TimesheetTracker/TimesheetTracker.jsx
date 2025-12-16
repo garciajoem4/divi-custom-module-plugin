@@ -26,10 +26,10 @@ class TimesheetTracker extends Component {
 			selectedRowsForInvoice: [], // Track which rows are selected for invoice generation
 			config: {
 				maxRows: config.maxRows || 10,
-				defaultHourlyRate: 15, // Fixed rate at $15
+				defaultHourlyRate: parseFloat(config.defaultHourlyRate) || 15,
 				defaultProject: config.defaultProject || '',
 				presetTasks: config.presetTasks || [],
-				currencySymbol: '$', // USD currency
+				currencySymbol: config.currencySymbol || '$',
 				decimalPlaces: config.decimalPlaces || 2,
 				timeFormat: config.timeFormat || 'decimal',
 				saveData: config.saveData !== false,
@@ -43,15 +43,20 @@ class TimesheetTracker extends Component {
 				ajaxUrl: config.ajaxUrl || '',
 				nonce: config.nonce || '',
 				userDetails: config.userDetails || null,
+				billTo: {
+					name: config.billToName || '-',
+					address: config.billToAddress || '-',
+					city: config.billToCity || '-',
+					postalCode: config.billToPostalCode || '-',
+					country: config.billToCountry || '-',
+					email: config.billToEmail || '-'
+				}
 			}
 		};
 
 		this.timerInterval = null;
 		this.autoSaveInterval = null;
-	}
-
-	componentDidMount() {
-		// Check if user is logged in
+		
 		if (!this.state.config.isLoggedIn) {
 			// Load live public data for non-logged users
 			this.loadPublicData();
@@ -355,7 +360,7 @@ class TimesheetTracker extends Component {
 			tasks: '',
 			notes: '',
 			hours: '',
-			rate: '15.00', // Fixed rate at $15
+			rate: this.state.config.defaultHourlyRate.toFixed(2),
 			amount: '0.00',
 			modified: true
 		};
@@ -422,13 +427,13 @@ class TimesheetTracker extends Component {
 				modified: true // Mark as modified for auto-save
 			};
 
-			// Auto-calculate amount when hours change (rate is fixed at $15)
+			// Auto-calculate amount when hours change
 			if (field === 'hours') {
 				const hours = parseFloat(newRows[index].hours) || 0;
-				const rate = 15; // Fixed rate
+				const rate = this.state.config.defaultHourlyRate;
 				const amount = (hours * rate).toFixed(this.state.config.decimalPlaces);
 				newRows[index].amount = amount;
-				newRows[index].rate = '15.00'; // Ensure rate is always 15
+				newRows[index].rate = this.state.config.defaultHourlyRate.toFixed(2);
 			}
 
 			return { rows: newRows };
@@ -548,8 +553,8 @@ class TimesheetTracker extends Component {
 				tasks: 'Frontend Development',
 				notes: 'Created responsive navigation menu',
 				hours: '3.5',
-				rate: '15.00',
-				amount: '52.50'
+				rate: this.state.config.defaultHourlyRate.toFixed(2),
+				amount: (3.5 * this.state.config.defaultHourlyRate).toFixed(2)
 			},
 			{
 				id: 'demo_2',
@@ -558,8 +563,8 @@ class TimesheetTracker extends Component {
 				tasks: 'Testing',
 				notes: 'Cross-browser compatibility testing',
 				hours: '2.0',
-				rate: '15.00',
-				amount: '30.00'
+				rate: this.state.config.defaultHourlyRate.toFixed(2),
+				amount: (2.0 * this.state.config.defaultHourlyRate).toFixed(2)
 			},
 			{
 				id: 'demo_3',
@@ -568,8 +573,8 @@ class TimesheetTracker extends Component {
 				tasks: 'Documentation',
 				notes: 'Updated API documentation',
 				hours: '1.5',
-				rate: '15.00',
-				amount: '22.50'
+				rate: this.state.config.defaultHourlyRate.toFixed(2),
+				amount: (1.5 * this.state.config.defaultHourlyRate).toFixed(2)
 			}
 		];
 
@@ -616,8 +621,8 @@ class TimesheetTracker extends Component {
 					tasks: entry.tasks || '',
 					notes: entry.notes || '',
 					hours: entry.hours || '0',
-					rate: '15.00', // Fixed rate for display consistency
-					amount: (parseFloat(entry.hours || 0) * 15).toFixed(2)
+					rate: this.state.config.defaultHourlyRate.toFixed(2),
+					amount: (parseFloat(entry.hours || 0) * this.state.config.defaultHourlyRate).toFixed(2)
 				}));
 
 				// Process contributor data
@@ -838,7 +843,7 @@ class TimesheetTracker extends Component {
 				
 				// Add financial columns only for logged users
 				if (!isViewOnly) {
-					baseRow.push('$15.00', `$${row.amount}`);
+					baseRow.push(`${config.currencySymbol}${config.defaultHourlyRate.toFixed(2)}`, `${config.currencySymbol}${row.amount}`);
 				}
 				
 				return baseRow.join(',');
@@ -851,7 +856,7 @@ class TimesheetTracker extends Component {
 		
 		if (!isViewOnly) {
 			const totalAmount = this.state.totalAmount.toFixed(config.decimalPlaces);
-			totalsRow += `,"","$${totalAmount}"`;
+			totalsRow += `,"","${config.currencySymbol}${totalAmount}"`;
 		}
 		
 		const finalCSV = csvContent + totalsRow;
@@ -963,19 +968,19 @@ class TimesheetTracker extends Component {
 							<div class="value"><p class="no-margin">Web Development and Design</p></div>
 						</div>
 						<div class="invoice-subdetail invoice-total">
-							<div class="label"><p class="no-margin"><strong>Invoice Total (USD)</strong></p></div>
-							<div class="value"><p class="no-margin">$ ${selectedTotals.amount.toFixed(config.decimalPlaces)}</p></div>
+							<div class="label"><p class="no-margin"><strong>Invoice Total (${config.currencySymbol === '$' ? 'USD' : config.currencySymbol === '₱' ? 'PHP' : config.currencySymbol})</strong></p></div>
+							<div class="value"><p class="no-margin">${config.currencySymbol} ${selectedTotals.amount.toFixed(config.decimalPlaces)}</p></div>
 						</div>
 					</div>
 					<div class="bill-to">
 						<div class="label"><p class="no-margin"><strong>Bill To</strong></p></div>
 						<div class="value">
-							<h3 class="margin-balance">GDV Ventures</h3>
-							<p class="margin-balance">406 Ninth Ave STE 304,</p>
-							<p class="margin-balance">San Diego,</p>
-							<p class="margin-balance">CA 92101</p>
-							<p class="margin-balance">USA</p>
-							<p class="margin-balance">Email: gianni@gdv.ventures</p>
+							<h3 class="margin-balance">${config.billTo.name}</h3>
+							<p class="margin-balance">${config.billTo.address}</p>
+							<p class="margin-balance">${config.billTo.city}</p>
+							<p class="margin-balance">${config.billTo.postalCode}</p>
+							<p class="margin-balance">${config.billTo.country}</p>
+							<p class="margin-balance">Email: ${config.billTo.email}</p>
 						</div>
 					</div>
 				</div>
@@ -998,8 +1003,8 @@ class TimesheetTracker extends Component {
 								<td>${row.project}</td>
 								<td>${row.tasks}${row.notes ? ' - ' + row.notes : ''}</td>
 								<td>${row.hours}</td>
-								<td>$15.00</td>
-								<td class="amount">$${row.amount}</td>
+								<td>${config.currencySymbol}${config.defaultHourlyRate.toFixed(2)}</td>
+								<td class="amount">${config.currencySymbol}${row.amount}</td>
 							</tr>
 						`).join('')}
 					</tbody>
@@ -1007,7 +1012,7 @@ class TimesheetTracker extends Component {
 
 				<div class="totals">
 					<p><strong>Total Hours:</strong> ${selectedTotals.hours.toFixed(config.decimalPlaces)}</p>
-					<p><strong>Total Amount: $ ${selectedTotals.amount.toFixed(config.decimalPlaces)}</strong></p>
+					<p><strong>Total Amount: ${config.currencySymbol} ${selectedTotals.amount.toFixed(config.decimalPlaces)}</strong></p>
 				</div>
 			</body>
 			</html>
@@ -1238,7 +1243,7 @@ class TimesheetTracker extends Component {
 							</span>
 							{!isViewOnly && (
 								<span className="total-amount">
-									Total Amount: <strong>${this.state.totalAmount.toFixed(config.decimalPlaces)}</strong>
+									Total Amount: <strong>{config.currencySymbol}{this.state.totalAmount.toFixed(config.decimalPlaces)}</strong>
 								</span>
 							)}
 						</div>
@@ -1358,13 +1363,13 @@ class TimesheetTracker extends Component {
 										{!isViewOnly && (
 											<td className="td-rate">
 												<div className="fixed-rate-display">
-													$15.00
+													{config.currencySymbol}15.00
 												</div>
 											</td>
 										)}
 										{!isViewOnly && (
 											<td className="amount-cell td-amount">
-												${row.amount}
+												{config.currencySymbol}{row.amount}
 											</td>
 										)}
 										{!isViewOnly && (

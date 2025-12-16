@@ -152,7 +152,22 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 				'type' => 'text',
 				'default' => '15.00',
 				'toggle_slug' => 'default_values',
-				'description' => esc_html__( 'Set the default hourly billing rate in USD (fixed at $15).', 'dicm-divi-custom-modules' ),
+				'description' => esc_html__( 'Set the default hourly billing rate.', 'dicm-divi-custom-modules' ),
+			),
+			'currency_symbol' => array(
+				'label' => esc_html__( 'Currency Symbol', 'dicm-divi-custom-modules' ),
+				'type' => 'select',
+				'option_category' => 'basic_option',
+				'options' => array(
+					'$' => esc_html__( '$ (USD - US Dollar)', 'dicm-divi-custom-modules' ),
+					"\xE2\x82\xB1" => esc_html__( "\xE2\x82\xB1 (PHP - Philippine Peso)", 'dicm-divi-custom-modules' ),
+					"\xE2\x82\xAC" => esc_html__( "\xE2\x82\xAC (EUR - Euro)", 'dicm-divi-custom-modules' ),
+					"\xC2\xA3" => esc_html__( "\xC2\xA3 (GBP - British Pound)", 'dicm-divi-custom-modules' ),
+					"\xC2\xA5" => esc_html__( "\xC2\xA5 (JPY - Japanese Yen)", 'dicm-divi-custom-modules' ),
+				),
+				'default' => '$',
+				'toggle_slug' => 'default_values',
+				'description' => esc_html__( 'Select the currency symbol to display.', 'dicm-divi-custom-modules' ),
 			),
 			'default_project' => array(
 				'label' => esc_html__( 'Default Project Name', 'dicm-divi-custom-modules' ),
@@ -257,6 +272,50 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 				'toggle_slug' => 'formatting',
 				'description' => esc_html__( 'How to display time values.', 'dicm-divi-custom-modules' ),
 			),
+			
+			// Invoice Bill To Configuration
+			'bill_to_name' => array(
+				'label' => esc_html__( 'Bill To: Company Name', 'dicm-divi-custom-modules' ),
+				'type' => 'text',
+				'default' => 'GDV Ventures',
+				'toggle_slug' => 'formatting',
+				'description' => esc_html__( 'Company or client name for invoice.', 'dicm-divi-custom-modules' ),
+			),
+			'bill_to_address' => array(
+				'label' => esc_html__( 'Bill To: Address', 'dicm-divi-custom-modules' ),
+				'type' => 'text',
+				'default' => '406 Ninth Ave STE 304,',
+				'toggle_slug' => 'formatting',
+				'description' => esc_html__( 'Street address for invoice.', 'dicm-divi-custom-modules' ),
+			),
+			'bill_to_city' => array(
+				'label' => esc_html__( 'Bill To: City', 'dicm-divi-custom-modules' ),
+				'type' => 'text',
+				'default' => 'San Diego,',
+				'toggle_slug' => 'formatting',
+				'description' => esc_html__( 'City for invoice.', 'dicm-divi-custom-modules' ),
+			),
+			'bill_to_postal_code' => array(
+				'label' => esc_html__( 'Bill To: State/Postal Code', 'dicm-divi-custom-modules' ),
+				'type' => 'text',
+				'default' => 'CA 92101',
+				'toggle_slug' => 'formatting',
+				'description' => esc_html__( 'State and postal code for invoice.', 'dicm-divi-custom-modules' ),
+			),
+			'bill_to_country' => array(
+				'label' => esc_html__( 'Bill To: Country', 'dicm-divi-custom-modules' ),
+				'type' => 'text',
+				'default' => 'USA',
+				'toggle_slug' => 'formatting',
+				'description' => esc_html__( 'Country for invoice.', 'dicm-divi-custom-modules' ),
+			),
+			'bill_to_email' => array(
+				'label' => esc_html__( 'Bill To: Email', 'dicm-divi-custom-modules' ),
+				'type' => 'text',
+				'default' => 'gianni@gdv.ventures',
+				'toggle_slug' => 'formatting',
+				'description' => esc_html__( 'Email address for invoice.', 'dicm-divi-custom-modules' ),
+			),
 		);
 	}
 
@@ -300,8 +359,15 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 		$default_hourly_rate = $this->props['default_hourly_rate'];
 		$default_project = $this->props['default_project'];
 		$preset_tasks = $this->props['preset_tasks'];
+		$currency_symbol = $this->props['currency_symbol'];
 		$decimal_places = $this->props['decimal_places'];
 		$time_format = $this->props['time_format'];
+		$bill_to_name = $this->props['bill_to_name'];
+		$bill_to_address = $this->props['bill_to_address'];
+		$bill_to_city = $this->props['bill_to_city'];
+		$bill_to_postal_code = $this->props['bill_to_postal_code'];
+		$bill_to_country = $this->props['bill_to_country'];
+		$bill_to_email = $this->props['bill_to_email'];
 		$save_data = $this->props['save_data'];
 		$auto_save_interval = $this->props['auto_save_interval'];
 		$timer_auto_start = $this->props['timer_auto_start'];
@@ -314,10 +380,10 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 		// Module configuration for JavaScript
 		$config = array(
 			'maxRows' => intval($max_rows),
-			'defaultHourlyRate' => 15, // Fixed at $15
+			'defaultHourlyRate' => floatval($default_hourly_rate),
 			'defaultProject' => $default_project,
 			'presetTasks' => $preset_tasks_array,
-			'currencySymbol' => '$', // USD currency
+			'currencySymbol' => $currency_symbol,
 			'decimalPlaces' => intval($decimal_places),
 			'timeFormat' => $time_format,
 			'saveData' => $save_data === 'on' && $is_logged_in, // Only save if logged in
@@ -331,6 +397,13 @@ class DICM_TimesheetTracker extends ET_Builder_Module {
 			'viewOnly' => !$is_logged_in, // Add view-only flag
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 			'nonce' => wp_create_nonce( 'timesheet_tracker_nonce' ),
+			// Invoice Bill To Configuration
+			'billToName' => $bill_to_name,
+			'billToAddress' => $bill_to_address,
+			'billToCity' => $bill_to_city,
+			'billToPostalCode' => $bill_to_postal_code,
+			'billToCountry' => $bill_to_country,
+			'billToEmail' => $bill_to_email,
 		);
 
 		// Add login URL to config for React component
